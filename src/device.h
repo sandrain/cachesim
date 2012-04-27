@@ -31,14 +31,10 @@ struct storage_dev_stat {
 };
 
 struct storage_dev_ops {
-	int (*storage_dev_init) (struct stoage_dev *stdev,
-				 __u32 read_latency,
-				 __u32 write_latency,
-				 __u32 block_size,
-				 __u64 block_count,
-				 struct storage_dev_ops *ops,
-				 void *private);
-	void (*storage_dev_exit) (struct storage_dev *stdev);
+	struct storage_dev *(*init) (__u32 read_latency, __u32 write_latency,
+				__u32 block_size, __u64 block_count,
+				struct storage_dev_ops *ops, void *private);
+	void (*exit) (struct storage_dev *stdev);
 
 	double (*get_read_latency) (struct storage_dev *stdev);
 	double (*get_write_latency) (struct storage_dev *stdev);
@@ -65,7 +61,6 @@ struct storage_dev {
 /**
  * @brief
  *
- * @stdev
  * @read_latency
  * @write_latency
  * @block_size
@@ -75,11 +70,15 @@ struct storage_dev {
  *
  * @return 
  */
-int storage_dev_init(struct stoage_dev *stdev,
-			__u32 read_latency, __u32 write_latency,
-			__u32 block_size, __u64 block_count,
-			struct storage_dev_ops *ops, void *private);
+struct storage_dev *storage_dev_init(__u32 read_latency, __u32 write_latency,
+				__u32 block_size, __u64 block_count,
+				struct storage_dev_ops *ops, void *private);
 
+/**
+ * @brief
+ *
+ * @stdev
+ */
 void storage_dev_exit(struct storage_dev *stdev);
 
 /**
@@ -126,7 +125,8 @@ static inline int generic_get_stat(struct storage_dev *stdev,
 	if (!stdev || !stat)
 		return -1;
 
-	*stat = *stdev;
+	*stat = stdev->stat;
+	return 0;
 }
 
 /**
@@ -174,6 +174,8 @@ static inline int generic_write_block(struct storage_dev *stdev,
 
 	return 0;
 }
+
+struct storage_dev_ops generic_storage_dev_ops;
 
 #endif	/* __DEVICE_H__ */
 
