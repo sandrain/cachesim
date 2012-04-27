@@ -49,6 +49,7 @@ struct stdev {
 #define	N_STDEVTYPE	3
 
 	int	type;
+	__u32	node;
 	int	read_latency;
 	int	write_latency;
 	__u32	block_size;
@@ -64,6 +65,15 @@ struct stdev *stdev_init(int type, __u32 read_latency, __u32 write_latency,
 			struct stdev_ops *ops);
 
 void stdev_exit(struct stdev *self);
+
+static inline int stdev_set_node(struct stdev *self, __u32 node)
+{
+	if (!self)
+		return -1;
+
+	self->node = node;
+	return 0;
+}
 
 static inline double stdev_get_read_latency(struct stdev *self)
 {

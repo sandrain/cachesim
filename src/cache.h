@@ -22,8 +22,28 @@
 #include <linux/types.h>
 
 struct stdev;
+struct cache;
 
+struct cache_stat {
+	__u64	hit_count;
+	__u64	miss_count;
+};
 
+struct cache_ops {
+	int (*get_stat) (struct cache *self, struct cache_stat *stat);
+	int (*read_block) (struct cache *self, __u32 req_node,
+				__u64 offset, __u64 count, double *latency);
+	int (*write_block) (struct cache *self, __u32 req_node,
+				__u64 offset, __u64 count, double *latency);
+};
+
+struct cache {
+	struct stdev **devs;
+	struct cache_stat stat;
+	struct cache_ops *ops;
+
+	void *private;
+};
 
 #endif	/* __CACHE_H__ */
 
