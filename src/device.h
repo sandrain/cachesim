@@ -21,161 +21,105 @@
 
 #include <linux/types.h>
 
-struct storage_dev;
+struct stdev;	/* STorage DEVice */
 
-struct storage_dev_stat {
+struct stdev_stat {
 	__u64	read_count;
 	__u64	write_count;
 	__u64	read_blocks;
 	__u64	written_blocks;
 };
 
-struct storage_dev_ops {
-	struct storage_dev *(*init) (__u32 read_latency, __u32 write_latency,
-				__u32 block_size, __u64 block_count,
-				struct storage_dev_ops *ops, void *private);
-	void (*exit) (struct storage_dev *stdev);
+struct stdev_ops {
+	double (*get_read_latency) (struct stdev *self);
+	double (*get_write_latency) (struct stdev *self);
+	int (*get_stat) (struct stdev *self, struct stdev_stat *stat);
 
-	double (*get_read_latency) (struct storage_dev *stdev);
-	double (*get_write_latency) (struct storage_dev *stdev);
-	int (*get_stat) (struct storage_dev *stdev,
-			struct storage_dev_stat *stat);
-
-	int (*read_block) (struct storage_dev *stdev,
+	int (*read_block) (struct stdev *self,
 				__u64 offset, __u64 count, double *latency);
-	int (*write_block) (struct storage_dev *stdev,
+	int (*write_block) (struct stdev *self,
 				__u64 offset, __u64 count, double *latency);
 };
 
-struct storage_dev {
+struct stdev {
 	int	read_latency;
 	int	write_latency;
 	__u32	block_size;
 	__u64	block_count;
 	void	*private;
 
-	struct storage_dev_ops *ops;
-	struct storage_dev_stat stat;
+	struct stdev_ops *ops;
+	struct stdev_stat stat;
 };
 
-/**
- * @brief
- *
- * @read_latency
- * @write_latency
- * @block_size
- * @block_count
- * @ops
- * @private
- *
- * @return 
- */
-struct storage_dev *storage_dev_init(__u32 read_latency, __u32 write_latency,
-				__u32 block_size, __u64 block_count,
-				struct storage_dev_ops *ops, void *private);
+struct stdev *stdev_init(__u32 read_latency, __u32 write_latency,
+			__u32 block_size, __u64 block_count,
+			struct stdev_ops *ops, void *private);
 
-/**
- * @brief
- *
- * @stdev
- */
-void storage_dev_exit(struct storage_dev *stdev);
+void stdev_exit(struct stdev *self);
 
-/**
- * @brief
- *
- * @stdev
- *
- * @return 
- */
-static inline double generic_get_read_latency(struct storage_dev *stdev)
+static inline double stdev_get_read_latency(struct stdev *self)
 {
-	if (!stdev)
+	if (!self)
 		return -1;
 
-	return stdev->read_latency;
+	return self->read_latency;
 }
 
-/**
- * @brief
- *
- * @stdev
- *
- * @return 
- */
-static inline double generic_get_write_latency(struct storage_dev *stdev)
+static inline double stdev_get_write_latency(struct stdev *self)
 {
-	if (!stdev)
+	if (!self)
 		return -1;
 
-	return stdev->write_latency;
+	return self->write_latency;
 }
 
-/**
- * @brief
- *
- * @stdev
- * @stat
- *
- * @return 
- */
-static inline int generic_get_stat(struct storage_dev *stdev,
-				struct storage_dev_stat *stat)
+static inline int stdev_get_stat(struct stdev *self, struct stdev_stat *stat)
 {
-	if (!stdev || !stat)
+	if (!self || !stat)
 		return -1;
 
-	*stat = stdev->stat;
+	*stat = self->stat;
 	return 0;
 }
 
-/**
- * @brief
- *
- * @stdev
- * @offset
- * @count
- * @latency
- *
- * @return 
- */
-static inline int generic_read_block(struct storage_dev *stdev,
-			__u64 offset, __u64 count, double *latency)
+static inline int stdev_read_block(struct stdev *self,
+				__u64 offset, __u64 count, double *latency)
 {
-	if (!stdev)
+	if (!self)
 		return -1;
+	if (offset + count > self->block_count)
+		return -2;
 
-	stdev->stat.read_count++;
-	stdev->stat.read_blocks += count;
-	*latency = stdev->read_latency;
+	self->stat.read_count++;
+	self->stat.read_blocks += count;
+	*latency = self->read_latency;
 
 	return 0;
 }
 
-/**
- * @brief
- *
- * @stdev
- * @offset
- * @count
- * @latency
- *
- * @return 
- */
-static inline int generic_write_block(struct storage_dev *stdev,
-			__u64 offset, __u64 count, double *latency)
+static inline int stdev_write_block(struct stdev *self,
+				__u64 offset, __u64 count, double *latency)
 {
-	if (!stdev)
+	if (!self)
 		return -1;
+	if (offset + count > self->block_count)
+		return -2;
 
-	stdev->stat.write_count++;
-	stdev->stat.written_blocks += count;
-	*latency = stdev->write_latency;
+	self->stat.write_count++;
+	self->stat.written_blocks += count;
+	*latency = self->write_latency;
 
 	return 0;
 }
 
-struct storage_dev_ops generic_storage_dev_ops;
+struct stdev_ops generic_stdev_ops;
+
+struct stdev *ssd_init(__u32 read_latency, __u32 write_latency,
+			__u32 block_size, __u64 block_count,
+			struct stdev_ops *ops, void *private);
+
+struct stdev_ops ssd_dev_ops;
 
 #endif	/* __DEVICE_H__ */
 
