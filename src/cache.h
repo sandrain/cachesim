@@ -35,9 +35,9 @@ struct cache_ops {
 	void (*exit) (struct cache *self);
 	int (*get_stat) (struct cache *self, struct cache_stat *stat);
 	int (*read_block) (struct cache *self, __u32 req_node,
-				__u64 offset, __u64 count, double *latency);
+			__u64 offset, __u64 count, __u64 *hits, double *latency);
 	int (*write_block) (struct cache *self, __u32 req_node,
-				__u64 offset, __u64 count, double *latency);
+			__u64 offset, __u64 count, __u64 *hits, double *latency);
 };
 
 struct cache {
@@ -53,6 +53,18 @@ struct cache *cache_init(struct stdev **devs, int ndevs,
 			struct cache_ops *ops, void *private);
 
 void cache_exit(struct cache *self);
+
+static inline int cache_get_stat(struct cache *self, struct cache_stat *stat)
+{
+	if (self && stat) {
+		*stat = self->stat;
+		return 0;
+	}
+
+	return -1;
+}
+
+struct cache_ops random_ops;
 
 #endif	/* __CACHE_H__ */
 
