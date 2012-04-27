@@ -24,6 +24,7 @@
 #include "device.h"
 
 struct cache;
+struct storage;
 
 struct cache_stat {
 	__u64	hit_count;
@@ -34,10 +35,10 @@ struct cache_ops {
 	int (*init) (struct cache *self);
 	void (*exit) (struct cache *self);
 	int (*get_stat) (struct cache *self, struct cache_stat *stat);
-	int (*read_block) (struct cache *self, __u32 req_node,
-			__u64 offset, __u64 count, __u64 *hits, double *latency);
-	int (*write_block) (struct cache *self, __u32 req_node,
-			__u64 offset, __u64 count, __u64 *hits, double *latency);
+	int (*read_block) (struct cache *self, __u32 req_node, __u64 offset,
+			__u64 count, __u64 *nhits, double *latency);
+	int (*write_block) (struct cache *self, __u32 req_node, __u64 offset,
+			__u64 count, __u64 *nhits, double *latency);
 };
 
 struct cache {
@@ -46,6 +47,8 @@ struct cache {
 	struct cache_stat stat;
 	struct cache_ops *ops;
 
+	struct storage *next;
+
 	void *private;
 };
 
@@ -53,6 +56,17 @@ struct cache *cache_init(struct stdev **devs, int ndevs,
 			struct cache_ops *ops, void *private);
 
 void cache_exit(struct cache *self);
+
+static inline int cache_set_next_storage(struct cache *self,
+					struct storage *next)
+{
+	if (self && next) {
+		self->next = next;
+		return 0;
+	}
+
+	return -1;
+}
 
 static inline int cache_get_stat(struct cache *self, struct cache_stat *stat)
 {

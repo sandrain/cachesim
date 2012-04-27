@@ -16,43 +16,19 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  * 
  */
-#include <stdlib.h>
-#include <string.h>
+#ifndef	__STORAGE_H__
+#define	__STORAGE_H__
 
+#include <linux/types.h>
+
+#include "device.h"
 #include "cache.h"
 
-struct cache *cache_init(struct stdev **devs, int ndevs,
-			struct cache_ops *ops, void *private)
-{
-	struct cache *self;
+struct storage {
+	struct cache *cache;
+	struct stdev *stable;
+	struct storage *next;
+};
 
-	if (devs == NULL || ndevs < 0 || ops == NULL)
-		return NULL;
-
-	self = malloc(sizeof(*self));
-	if (self) {
-		self->ndevs = ndevs;
-		self->devs = devs;
-		memset(&self->stat, 0, sizeof(self->stat));
-		self->private = private;
-		self->next = NULL;
-		self->stable = NULL;
-
-		if (self->ops->init)
-			if (self->ops->init(self) < 0) {
-				free(self);
-				self = NULL;
-			}
-	}
-	return self;
-}
-
-void cache_exit(struct cache *self)
-{
-	if (self) {
-		if (self->ops->exit)
-			self->ops->exit(self);
-		free(self);
-	}
-}
+#endif	/* __STORAGE_H__ */
 
