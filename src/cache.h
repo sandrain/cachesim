@@ -21,22 +21,9 @@
 
 #include <linux/types.h>
 
-struct dev_storage;
+struct stdev;
 
-struct local_cache {
-	struct dev_storage *dev;
-	struct cache_algorithm *algorithm;
 
-	__u64 hit_count;
-	__u64 miss_count;
-
-	int (*search_block)(struct local_cache *self, __u64 block);
-};
-
-static inline int search_block(struct local_cache *self, __u64 block)
-{
-	return self->algorithm->search_block(self->algorithm, block);
-}
 
 #endif	/* __CACHE_H__ */
 
