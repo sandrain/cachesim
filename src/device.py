@@ -18,7 +18,7 @@
 
 import array
 
-class StorageDevice:
+class StorageDevice(object):
     def __init__(self, capacity, block_size, read_latency, write_latency):
         self.__capacity = capacity
         self.__block_size = block_size
@@ -71,12 +71,15 @@ class SSD(StorageDevice):
     def __init__(self, capacity, block_size, read_latency, write_latency):
         StorageDevice.__init__(self, capacity, block_size, read_latency, \
                             write_latency)
-        blkcount = self.capacity / self.block_size
-        self.block_wear = array.array('L')  # if this overflows, we need to use c_int64
+
+        # if this overflows, we need to use c_int64
+        self.block_wear = array.array('L', map(lambda x:0, range(capacity)))
 
     def write_block(self, block, count):
-        super(SSD, self).write_block(block, count)
-        self.block_wear[block] += 1
+        self.__write_count += 1
+        for i in range(block, block + count):
+            self.block_wear[i] += 1
+        return self.__write_latency
 
 class HDD(StorageDevice):
     def __init__(self, capacity, block_size, \
