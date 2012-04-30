@@ -63,9 +63,10 @@ struct stdev {
 	struct stdev_stat stat;
 };
 
-struct stdev *stdev_init(int type, __u32 read_latency, __u32 write_latency,
+struct stdev *stdev_init(int type,
+			__u32 read_latency, __u32 write_latency,
 			__u32 block_size, __u64 block_count,
-			struct stdev_ops *ops);
+			struct stdev_ops *ops, void *private);
 
 void stdev_exit(struct stdev *self);
 

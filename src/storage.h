@@ -24,6 +24,8 @@
 #include "device.h"
 #include "cache.h"
 
+/* Just a wrapper class of cache and stdev. */
+
 struct storage {
 
 #define	STORAGE_TYPE_CACHE	0
