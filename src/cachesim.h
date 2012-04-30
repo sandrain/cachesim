@@ -27,7 +27,10 @@
 #include "cache.h"
 #include "storage.h"
 
-/* Error codes */
+struct cachesim {
+};
+
+/* TODO: Error codes */
 
 
 #endif	/* __CACHESIM_H__ */
