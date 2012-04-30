@@ -56,6 +56,9 @@ struct stdev {
 	__u64	block_count;
 	void	*private;
 
+	/* FIXME: It's not a good idea that every device holds this. */
+	struct network *network;
+
 	struct stdev_ops *ops;
 	struct stdev_stat stat;
 };
@@ -111,6 +114,9 @@ static inline int stdev_read_block(struct stdev *self, __u32 req_node,
 	self->stat.read_count++;
 	self->stat.read_blocks += count;
 	*latency = self->read_latency;
+	if (self->network)
+		*latency += network_get_cost(self->network, self->node,
+				req_node);
 
 	return 0;
 }
@@ -126,6 +132,9 @@ static inline int stdev_write_block(struct stdev *self, __u32 req_node,
 	self->stat.write_count++;
 	self->stat.written_blocks += count;
 	*latency = self->write_latency;
+	if (self->network)
+		*latency += network_get_cost(self->network, self->node,
+				req_node);
 
 	return 0;
 }

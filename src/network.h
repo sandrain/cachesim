@@ -29,13 +29,13 @@ struct network *network_init(__u32 n);
 
 void network_exit(struct network *self);
 
-static inline void set_network_cost(struct network *self,
+static inline void network_set_cost(struct network *self,
 					__u32 n1, __u32 n2, double cost)
 {
 	self->grid[self->n * n1 + n2] = cost;
 }
 
-static inline double get_network_cost(struct network *self, __u32 n1, __u32 n2)
+static inline double network_get_cost(struct network *self, __u32 n1, __u32 n2)
 {
 	return self->grid[self->n * n1 + n2];
 }
