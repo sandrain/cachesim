@@ -35,9 +35,9 @@ struct stdev_ops {
 	double (*get_write_latency) (struct stdev *self);
 	int (*get_stat) (struct stdev *self, struct stdev_stat *stat);
 
-	int (*read_block) (struct stdev *self,
+	int (*read_block) (struct stdev *self, __u32 req_node,
 				__u64 offset, __u64 count, double *latency);
-	int (*write_block) (struct stdev *self,
+	int (*write_block) (struct stdev *self, __u32 req_node,
 				__u64 offset, __u64 count, double *latency);
 };
 
@@ -100,7 +100,7 @@ static inline int stdev_get_stat(struct stdev *self, struct stdev_stat *stat)
 	return 0;
 }
 
-static inline int stdev_read_block(struct stdev *self,
+static inline int stdev_read_block(struct stdev *self, __u32 req_node,
 				__u64 offset, __u64 count, double *latency)
 {
 	if (!self)
@@ -115,7 +115,7 @@ static inline int stdev_read_block(struct stdev *self,
 	return 0;
 }
 
-static inline int stdev_write_block(struct stdev *self,
+static inline int stdev_write_block(struct stdev *self, __u32 req_node,
 				__u64 offset, __u64 count, double *latency)
 {
 	if (!self)
