@@ -22,7 +22,7 @@
 #include "device.h"
 
 struct stdev *stdev_init(int type,
-			__u32 read_latency, __u32 write_latency,
+			double read_latency, double write_latency,
 			__u32 block_size, __u64 block_count,
 			struct stdev_ops *ops, void *private)
 {
@@ -78,7 +78,7 @@ int stdev_get_stat(struct stdev *self, struct stdev_stat *stat)
 }
 
 int stdev_read_block(struct stdev *self, __u32 req_node,
-				__u64 offset, __u64 count, double *latency)
+			__u64 offset, __u64 count, double *latency)
 {
 	if (!self)
 		return -1;
@@ -90,13 +90,13 @@ int stdev_read_block(struct stdev *self, __u32 req_node,
 	*latency = self->read_latency;
 	if (self->network)
 		*latency += network_get_cost(self->network, self->node,
-				req_node);
+						req_node);
 
 	return 0;
 }
 
 int stdev_write_block(struct stdev *self, __u32 req_node,
-				__u64 offset, __u64 count, double *latency)
+			__u64 offset, __u64 count, double *latency)
 {
 	if (!self)
 		return -1;
@@ -108,12 +108,12 @@ int stdev_write_block(struct stdev *self, __u32 req_node,
 	*latency = self->write_latency;
 	if (self->network)
 		*latency += network_get_cost(self->network, self->node,
-				req_node);
+						req_node);
 
 	return 0;
 }
 
-struct stdev *stdev_ssd_init(__u32 read_latency, __u32 write_latency,
+struct stdev *stdev_ssd_init(double read_latency, double write_latency,
 				__u32 block_size, __u64 block_count,
 				__u32 flash_block_size)
 {

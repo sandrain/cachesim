@@ -18,6 +18,7 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 #include <linux/types.h>
 
@@ -38,7 +39,7 @@ static double latency[3][2] = {
 
 static __u32 blksize = 4096;
 
-static char *private_str = "Hello, devices!";
+static char *private_str;
 struct network net = { 10.0 };
 
 int main(void)
@@ -98,16 +99,25 @@ int main(void)
 		stdev_set_node(dev[i], 0);
 		stdev_set_network(dev[i], &net);
 
-		res = dev[i]->ops->read_block(dev[i], 0, 2, 3, &tmp);
+		res = dev[i]->ops->read_block(dev[i], 1, 2, 3, &tmp);
 		assert(tmp == latency[i][0] + net.cost);
 
-		res = dev[i]->ops->write_block(dev[i], 0, 2, 3, &tmp);
-		assert(tmp == latency[i][0] + net.cost);
+		res = dev[i]->ops->write_block(dev[i], 1, 2, 3, &tmp);
+		assert(tmp == latency[i][1] + net.cost);
 
 		/* private test */
+		private_str = malloc(sizeof("hello"));
+		strncpy(private_str, "hello", strlen("hello"));
 		stdev_set_private(dev[i], private_str);
 		assert((char *) dev[i]->private == private_str);
 	}
+
+	free(private_str);
+
+	for (i = 0; i < 3; i++)
+		stdev_exit(dev[i]);
+
+	printf("All test passed!\n");
 
 	return 0;
 }

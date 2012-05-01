@@ -51,8 +51,8 @@ struct stdev {
 
 	int	type;
 	__u32	node;
-	int	read_latency;
-	int	write_latency;
+	double	read_latency;
+	double	write_latency;
 	__u32	block_size;
 	__u64	block_count;
 	void	*private;
@@ -79,7 +79,7 @@ struct stdev {
  * @return	Newly allocated/initialized instance. NULL on failure.
  */
 struct stdev *stdev_init(int type,
-			__u32 read_latency, __u32 write_latency,
+			double read_latency, double write_latency,
 			__u32 block_size, __u64 block_count,
 			struct stdev_ops *ops, void *private);
 
@@ -200,7 +200,7 @@ struct stdev_ssd_stat {
  *
  * @return	Newly created instance, which should be freed with stdev_exit.
  */
-struct stdev *stdev_ssd_init(__u32 read_latency, __u32 write_latency,
+struct stdev *stdev_ssd_init(double read_latency, double write_latency,
 				__u32 block_size, __u64 block_count,
 				__u32 flash_block_size);
 
@@ -219,6 +219,8 @@ struct stdev *stdev_ssd_init(__u32 read_latency, __u32 write_latency,
 
 struct stdev_ops generic_stdev_ops;
 struct stdev_ops ssd_dev_ops;
+
+double network_get_cost(struct network *network, __u32 n1, __u32 n2);
 
 #endif	/* __DEVICE_H__ */
 
