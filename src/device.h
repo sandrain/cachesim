@@ -103,10 +103,10 @@ static inline void stdev_set_node(struct stdev *self, __u32 node)
 }
 
 /**
- * @brief
+ * @brief	Set private data
  *
- * @self
- * @private
+ * @self	Instance
+ * @private	Pointer to your private data
  */
 static inline void stdev_set_private(struct stdev *self, void *private)
 {
@@ -115,10 +115,10 @@ static inline void stdev_set_private(struct stdev *self, void *private)
 }
 
 /**
- * @brief
+ * @brief	Set network for this device
  *
- * @self
- * @net
+ * @self	Instance
+ * @net		Network instance
  */
 static inline void stdev_set_network(struct stdev *self, struct network *net)
 {
