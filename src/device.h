@@ -220,7 +220,10 @@ struct stdev *stdev_ssd_init(double read_latency, double write_latency,
 struct stdev_ops generic_stdev_ops;
 struct stdev_ops ssd_dev_ops;
 
+#if 0
+/* This function is for test_device.c */
 double network_get_cost(struct network *network, __u32 n1, __u32 n2);
+#endif
 
 #endif	/* __DEVICE_H__ */
 
