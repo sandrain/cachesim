@@ -63,13 +63,40 @@ struct stdev {
 	struct stdev_stat stat;
 };
 
+/**
+ * @brief	Allocate/Initialize an instance. The instance should be freed
+ *		by calling stdev_exit()
+ *
+ * @type	Type of this device
+ * @read_latency The latency to read one block
+ * @write_latency The latency to write one block
+ * @block_size	Block size
+ * @block_count Total number of blocks
+ * @ops		Operation table
+ * @private	Private data to keep
+ *
+ * @return	Newly allocated/initialized instance. NULL on failure.
+ */
 struct stdev *stdev_init(int type,
 			__u32 read_latency, __u32 write_latency,
 			__u32 block_size, __u64 block_count,
 			struct stdev_ops *ops, void *private);
 
+/**
+ * @brief	Free the stdev instance
+ *
+ * @self	Pointer to the instance
+ */
 void stdev_exit(struct stdev *self);
 
+/**
+ * @brief	Set node number for device instance
+ *
+ * @self	Instance
+ * @node	Node number
+ *
+ * @return	0 on success, -1 for invalid instance.
+ */
 static inline int stdev_set_node(struct stdev *self, __u32 node)
 {
 	if (!self)
@@ -79,73 +106,85 @@ static inline int stdev_set_node(struct stdev *self, __u32 node)
 	return 0;
 }
 
-static inline double stdev_get_read_latency(struct stdev *self)
-{
-	if (!self)
-		return -1;
+/**
+ * @brief	Get the lantecy for reading a block
+ *
+ * @self	Instance
+ *
+ * @return	The latency on success, -1 on invalid instance.
+ */
+double stdev_get_read_latency(struct stdev *self);
 
-	return self->read_latency;
-}
+/**
+ * @brief	Get the latency for writing a block
+ *
+ * @self	Instance
+ *
+ * @return	The latency on success, -1 on invalid instance.
+ */
+double stdev_get_write_latency(struct stdev *self);
 
-static inline double stdev_get_write_latency(struct stdev *self)
-{
-	if (!self)
-		return -1;
+/**
+ * @brief	Get statistics up to a certain point.
+ *
+ * @self	Instance
+ * @stat	[out] Space to be filled with this function; caller should
+ *		allocate this.
+ *
+ * @return	0 on success, -1 on invalid instance.
+ */
+int stdev_get_stat(struct stdev *self, struct stdev_stat *stat);
 
-	return self->write_latency;
-}
+/**
+ * @brief	Simulate reading blocks.
+ *
+ * @self	Instance
+ * @req_node	Caller's node number (to estimate network delay)
+ * @offset	Starting block number
+ * @count	Number of blocks to be read
+ * @latency	[out] Expected latency, filled with this function
+ *
+ * @return	0 on success, -1 on invalid instance.
+ */
+int stdev_read_block(struct stdev *self, __u32 req_node,
+				__u64 offset, __u64 count, double *latency);
 
-static inline int stdev_get_stat(struct stdev *self, struct stdev_stat *stat)
-{
-	if (!self || !stat)
-		return -1;
+/**
+ * @brief	Simulate writing blocks.
+ *
+ * @self	Instance
+ * @req_node	Caller's node number (to estimate network delay)
+ * @offset	Starting block number
+ * @count	Number of block to be written
+ * @latency	[out] Expected latency, filled with this function
+ *
+ * @return	0 on success, -1 on invalid instance.
+ */
+int stdev_write_block(struct stdev *self, __u32 req_node,
+				__u64 offset, __u64 count, double *latency);
 
-	*stat = self->stat;
-	return 0;
-}
+struct stdev_ssd_stat {
+	__u32	flash_block_size;
+	__u64	write_dist[0];
+};
 
-static inline int stdev_read_block(struct stdev *self, __u32 req_node,
-				__u64 offset, __u64 count, double *latency)
-{
-	if (!self)
-		return -1;
-	if (offset + count > self->block_count)
-		return -2;
-
-	self->stat.read_count++;
-	self->stat.read_blocks += count;
-	*latency = self->read_latency;
-	if (self->network)
-		*latency += network_get_cost(self->network, self->node,
-				req_node);
-
-	return 0;
-}
-
-static inline int stdev_write_block(struct stdev *self, __u32 req_node,
-				__u64 offset, __u64 count, double *latency)
-{
-	if (!self)
-		return -1;
-	if (offset + count > self->block_count)
-		return -2;
-
-	self->stat.write_count++;
-	self->stat.written_blocks += count;
-	*latency = self->write_latency;
-	if (self->network)
-		*latency += network_get_cost(self->network, self->node,
-				req_node);
-
-	return 0;
-}
-
-struct stdev_ops generic_stdev_ops;
-
+/**
+ * @brief	Initialization routine for ssd devices. This is derived for
+ *		accounting write distribution across the flash device.
+ *
+ * @read_latency Latency for reading a block
+ * @write_latency Latency for writing a block
+ * @block_size	IO block size
+ * @block_count	Total number of blocks
+ * @flash_block_size	Physical block size of NAND Flash memory.
+ *
+ * @return	Newly created instance, which should be freed with stdev_exit.
+ */
 struct stdev *ssd_init(__u32 read_latency, __u32 write_latency,
 			__u32 block_size, __u64 block_count,
-			struct stdev_ops *ops);
+			__u32 flash_block_size);
 
+struct stdev_ops generic_stdev_ops;
 struct stdev_ops ssd_dev_ops;
 
 #endif	/* __DEVICE_H__ */
