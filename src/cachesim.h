@@ -27,6 +27,9 @@
 #include "cache.h"
 #include "storage.h"
 
+struct cachesim_config {
+};
+
 struct cachesim {
 };
 
