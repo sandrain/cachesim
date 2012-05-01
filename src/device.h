@@ -184,6 +184,17 @@ struct stdev *ssd_init(__u32 read_latency, __u32 write_latency,
 			__u32 block_size, __u64 block_count,
 			__u32 flash_block_size);
 
+/**
+ * wrappers of stdev_init()
+ */
+#define	mem_init(read_latency, write_latency, block_size, block_count)	\
+		stdev_init(read_latency, write_latency,			\
+			block_size, block_count, &generic_stdev_ops, NULL)
+
+#define	hdd_init(read_latency, write_latency, block_size, block_count)	\
+		stdev_init(read_latency, write_latency,			\
+			block_size, block_count, &generic_stdev_ops, NULL)
+
 struct stdev_ops generic_stdev_ops;
 struct stdev_ops ssd_dev_ops;
 
