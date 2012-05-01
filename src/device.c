@@ -130,7 +130,7 @@ struct stdev *ssd_init(__u32 read_latency, __u32 write_latency,
 	ssd_stat->flash_block_size = flash_block_size;
 	
 	self = stdev_init(STDEV_SSD, read_latency, write_latency,
-			block_size, block_count, ssd_dev_ops, ssd_stat);
+			block_size, block_count, &ssd_dev_ops, ssd_stat);
 
 	return self;
 }
@@ -139,7 +139,7 @@ static int stdev_ssd_write_block(struct stdev *self, __u32 req_node,
 				__u64 offset, __u64 count, double *latency)
 {
 	__u64 i;
-	struct ssd_stat *stat = (struct ssd_stat *) self->private;
+	struct stdev_ssd_stat *stat = (struct stdev_ssd_stat *) self->private;
 
 	for (i = offset; i < offset + count; i++) {
 		__u64 index = offset * self->block_size /
