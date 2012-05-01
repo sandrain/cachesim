@@ -21,6 +21,7 @@
 
 #include <linux/types.h>
 
+struct network;
 struct stdev;	/* STorage DEVice */
 
 struct stdev_stat {
@@ -94,16 +95,35 @@ void stdev_exit(struct stdev *self);
  *
  * @self	Instance
  * @node	Node number
- *
- * @return	0 on success, -1 for invalid instance.
  */
-static inline int stdev_set_node(struct stdev *self, __u32 node)
+static inline void stdev_set_node(struct stdev *self, __u32 node)
 {
-	if (!self)
-		return -1;
+	if (self)
+		self->node = node;
+}
 
-	self->node = node;
-	return 0;
+/**
+ * @brief
+ *
+ * @self
+ * @private
+ */
+static inline void stdev_set_private(struct stdev *self, void *private)
+{
+	if (self && private)
+		self->private = private;
+}
+
+/**
+ * @brief
+ *
+ * @self
+ * @net
+ */
+static inline void stdev_set_network(struct stdev *self, struct network *net)
+{
+	if (self && net)
+		self->network = net;
 }
 
 /**
@@ -180,20 +200,22 @@ struct stdev_ssd_stat {
  *
  * @return	Newly created instance, which should be freed with stdev_exit.
  */
-struct stdev *ssd_init(__u32 read_latency, __u32 write_latency,
-			__u32 block_size, __u64 block_count,
-			__u32 flash_block_size);
+struct stdev *stdev_ssd_init(__u32 read_latency, __u32 write_latency,
+				__u32 block_size, __u64 block_count,
+				__u32 flash_block_size);
 
 /**
  * wrappers of stdev_init()
  */
-#define	mem_init(read_latency, write_latency, block_size, block_count)	\
-		stdev_init(read_latency, write_latency,			\
-			block_size, block_count, &generic_stdev_ops, NULL)
+#define	stdev_mem_init(read_latency, write_latency, block_size, block_count) \
+			stdev_init(STDEV_MEM, read_latency, write_latency,   \
+				block_size, block_count,		     \
+				&generic_stdev_ops, NULL)
 
-#define	hdd_init(read_latency, write_latency, block_size, block_count)	\
-		stdev_init(read_latency, write_latency,			\
-			block_size, block_count, &generic_stdev_ops, NULL)
+#define	stdev_hdd_init(read_latency, write_latency, block_size, block_count) \
+			stdev_init(STDEV_HDD, read_latency, write_latency,   \
+				block_size, block_count,		     \
+				&generic_stdev_ops, NULL)
 
 struct stdev_ops generic_stdev_ops;
 struct stdev_ops ssd_dev_ops;

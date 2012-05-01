@@ -113,9 +113,9 @@ int stdev_write_block(struct stdev *self, __u32 req_node,
 	return 0;
 }
 
-struct stdev *ssd_init(__u32 read_latency, __u32 write_latency,
-			__u32 block_size, __u64 block_count,
-			__u32 flash_block_size)
+struct stdev *stdev_ssd_init(__u32 read_latency, __u32 write_latency,
+				__u32 block_size, __u64 block_count,
+				__u32 flash_block_size)
 {
 	struct stdev *self;
 	struct stdev_ssd_stat *ssd_stat;
