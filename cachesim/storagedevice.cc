@@ -25,41 +25,44 @@ using namespace std;
 class StorageDevice : cSimpleModule
 {
     public:
+
+    protected:
         void initialize();
         void finish();
         void handleMessage(cMessage *msg);
-
-        void setSize(__u32 blockSize, __u32 blockCount);
-        void setLatency(double readLatency, double writeLatency);
 
     private:
         __u32 __blockSize;
         __u32 __blockCount;
         double __readLatency;
         double __writeLatency;
+        __u64 __nReads;
+        __u64 __nWrites;
 };
-
-void StorageDevice::setSize(__u32 blockSize, __u32 blockCount)
-{
-    this->__blockSize = blockSize;
-    this->__blockCount = blockCount;
-}
-
-void StorageDevice::setLatency(double readLatency, double writeLatency)
-{
-    this->__readLatency = readLantecy;
-    this->__writeLatency = writeLatency;
-}
 
 void StorageDevice::initialize()
 {
+    __nReads = 0;
+    __nWrites = 0;
+    __blockSize = par("blockSize").longValue();
+    __blockCount = par("blockCount").longValue();
+    __readLatency = par("readLatency").doubleValue();
+    __writeLatency = par("writeLatency").doubleValue();
 }
 
 void StorageDevice::finish()
 {
+    cerr << "read request  = " << __nReads << endl;
+    cerr << "write request = " << __nWrites << endl;
 }
 
 void StorageDevice::handleMessage(cMessage *msg)
 {
+    if (msg->getName()[0] == 'R')
+        __nReads++;
+    else
+        __nWrites++;
+
+    delete msg;
 }
 

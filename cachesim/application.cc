@@ -23,7 +23,7 @@
 
 using namespace std;
 
-class IOApplication
+class IOApplication : cSimpleModule
 {
     public:
         IOApplication();
@@ -32,13 +32,15 @@ class IOApplication
         void setTraceFile(const char *fileName);
         void run();
 
-        void initialize();
-        void finish();
-        void handleMessage(cMessage *msg);
+    protected:
+        virtual void initialize();
+        virtual void finish();
+        virtual void handleMessage(cMessage *msg);
 
     private:
+        string fileName;
         ifstream trace;
-}
+};
 
 IOApplication::IOApplication()
 {
@@ -48,24 +50,22 @@ IOApplication::~IOApplication()
 {
 }
 
-void IOApplication::setTraceFile(const char *fileName)
-{
-    this->trace.open(fileName);
-}
-
 void IOApplication::run()
 {
     string line;
 
+    trace.open(fileName.c_str());
+
     while (getline(trace, line))
-        send(new cMessage(line), "out");
+        send(new cMessage(line.c_str()), "out");
 }
 
-void StorageDevice::initialize()
+void IOApplication::initialize()
 {
+    fileName = par("traceFile").stringValue();
 }
 
-void StorageDevice::finish()
+void IOApplication::finish()
 {
     trace.close();
 }
