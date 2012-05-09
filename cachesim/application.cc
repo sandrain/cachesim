@@ -21,6 +21,8 @@
 #include <string>
 #include <omnetpp.h>
 
+#include <linux/types.h>
+
 using namespace std;
 
 class IOApplication : public cSimpleModule
@@ -39,6 +41,7 @@ class IOApplication : public cSimpleModule
     private:
         void generateIO();
 
+		__u64 delay;
         string fileName;
         ifstream trace;
         cMessage *eof;
@@ -64,11 +67,13 @@ void IOApplication::generateIO()
     else
         msg = eof;
 
-    scheduleAt(simTime()+5, msg);
+    scheduleAt(simTime()+delay, msg);
 }
 
 void IOApplication::initialize()
 {
+    delay = par("delay").longValue();
+
     fileName = par("traceFile").stringValue();
     trace.open(fileName.c_str());
 

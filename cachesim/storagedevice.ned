@@ -1,5 +1,6 @@
 simple IOApplication {
     parameters:
+		int delay;
         string traceFile;
         @display("i=block/app");
     gates:
