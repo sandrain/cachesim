@@ -22,7 +22,7 @@
 
 using namespace std;
 
-class StorageDevice : cSimpleModule
+class StorageDevice : public cSimpleModule
 {
     public:
 
@@ -39,6 +39,8 @@ class StorageDevice : cSimpleModule
         __u64 __nReads;
         __u64 __nWrites;
 };
+
+Define_Module(StorageDevice);
 
 void StorageDevice::initialize()
 {

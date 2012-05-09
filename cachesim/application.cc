@@ -23,7 +23,7 @@
 
 using namespace std;
 
-class IOApplication : cSimpleModule
+class IOApplication : public cSimpleModule
 {
     public:
         IOApplication();
@@ -42,6 +42,8 @@ class IOApplication : cSimpleModule
         ifstream trace;
 };
 
+Define_Module(IOApplication);
+
 IOApplication::IOApplication()
 {
 }
@@ -54,8 +56,6 @@ void IOApplication::run()
 {
     string line;
 
-    trace.open(fileName.c_str());
-
     while (getline(trace, line))
         send(new cMessage(line.c_str()), "out");
 }
@@ -63,6 +63,10 @@ void IOApplication::run()
 void IOApplication::initialize()
 {
     fileName = par("traceFile").stringValue();
+    trace.open(fileName.c_str());
+
+    cMessage *self = new cMessage("trigger");
+    scheduleAt(simTime(), self);
 }
 
 void IOApplication::finish()
@@ -72,6 +76,7 @@ void IOApplication::finish()
 
 void IOApplication::handleMessage(cMessage *msg)
 {
-    /** at this moment, this should not happen */
+    if (msg->isSelfMessage())
+        run();
 }
 
