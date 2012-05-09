@@ -27,9 +27,9 @@ class StorageDevice : public cSimpleModule
     public:
 
     protected:
-        void initialize();
-        void finish();
-        void handleMessage(cMessage *msg);
+        virtual void initialize();
+        virtual void finish();
+        virtual void handleMessage(cMessage *msg);
 
     private:
         __u32 __blockSize;
