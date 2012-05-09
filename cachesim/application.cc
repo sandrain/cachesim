@@ -30,7 +30,6 @@ class IOApplication : public cSimpleModule
         ~IOApplication();
 
         void setTraceFile(const char *fileName);
-        void run();
 
     protected:
         virtual void initialize();
@@ -38,8 +37,11 @@ class IOApplication : public cSimpleModule
         virtual void handleMessage(cMessage *msg);
 
     private:
+        void generateIO();
+
         string fileName;
         ifstream trace;
+        cMessage *eof;
 };
 
 Define_Module(IOApplication);
@@ -52,12 +54,17 @@ IOApplication::~IOApplication()
 {
 }
 
-void IOApplication::run()
+void IOApplication::generateIO()
 {
     string line;
+    cMessage *msg;
 
-    while (getline(trace, line))
-        send(new cMessage(line.c_str()), "out");
+    if (getline(trace, line))
+        msg = new cMessage(line.c_str());
+    else
+        msg = eof;
+
+    scheduleAt(simTime()+5, msg);
 }
 
 void IOApplication::initialize()
@@ -65,8 +72,9 @@ void IOApplication::initialize()
     fileName = par("traceFile").stringValue();
     trace.open(fileName.c_str());
 
-    cMessage *self = new cMessage("trigger");
-    scheduleAt(simTime(), self);
+    generateIO();
+
+    eof = new cMessage("eof");
 }
 
 void IOApplication::finish()
@@ -76,7 +84,11 @@ void IOApplication::finish()
 
 void IOApplication::handleMessage(cMessage *msg)
 {
-    if (msg->isSelfMessage())
-        run();
+    if (msg == eof)
+        delete msg;
+    else {
+        send(msg, "out");
+        generateIO();
+    }
 }
 
