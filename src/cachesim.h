@@ -17,5 +17,5 @@ typedef int64_t     __s64;
 #include "block_io_trace.h"
 #include "block_io_application.h"
 
-#endif  /** __CACHESIM_HPP__ */
+#endif  /** __CACHESIM_H__ */
 
