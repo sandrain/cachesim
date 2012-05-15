@@ -37,8 +37,8 @@ class BlockIOApplication : public cSimpleModule
 
     private:
         BlockIOTrace _trace;
-        int _requestGate;
-        int _responseGate;
+        int _gateRequest;
+        int _gateResponse;
 };
 
 #endif  /** __BLOCK_IO_APPLICATION__ */
