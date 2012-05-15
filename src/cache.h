@@ -6,8 +6,6 @@
 
 class Cache : public cSimpleModule
 {
-    friend class CacheAlgorithm;
-
     public:
         Cache() {}
         ~Cache() {}
@@ -16,8 +14,6 @@ class Cache : public cSimpleModule
         virtual void initialize() = 0;
         virtual void final() = 0;
         virtual void handleMessage() = 0;
-
-        CacheAlgorithm algorithm;
 
         __u64 hits;
         __u64 misses;
@@ -40,15 +36,19 @@ class LocalCache : public Cache
 
         ~LocalCache() {}
 
-        void initialize();
-        void final();
-        void handleMessage();
+    protected:
+        virtual void initialize() = 0;
+        virtual void final() = 0;
+        virtual void handleMessage() = 0;
 
         enum { GATE_INDEX_DRAM = 0, GATE_INDEX_SSD = 1, GATE_INDEX_HDD = 2 };
 
-    private:
         std::vector<int> _gateRequest;
         std::vector<int> _gateResponse;
+};
+
+class AggregatedCache : public Cache
+{
 };
 
 #endif  /** __CACHE_H__ */
