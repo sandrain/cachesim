@@ -32,7 +32,7 @@ class BlockIOTrace
     public:
         BlockIOTrace() {}
 
-        BlockIOTrace(const std::string& fileName) : _traceFile(fileName) {}
+        BlockIOTrace(const std::string& fileName) : name(fileName) {}
 
         BlockIOTrace(const BlockIOTrace& trace);
         BlockIOTrace& operator=(const BlockIOTrace& trace);
@@ -41,11 +41,12 @@ class BlockIOTrace
 
         void initialize();
         void initialize(const std::string& fileName);
+        BlockIORequest *getNextRequest();
 
         static const BlockIORequest eof(BlockIORequest::IOREQ_EOF, 0, 0);
+        std::string name;
 
     private:
-        std::string _traceFile;
         std::ifstream _trace;
 };
 
