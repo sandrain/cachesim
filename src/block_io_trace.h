@@ -13,7 +13,7 @@ class BlockIORequest : public cMessage
         BlockIORequest(int type, __u64 offset, __u64 count)
             : kind(type), _blockOffset(offset), _blockCount(count) {}
 
-        /** Default will be enough here
+        /** Default methods are enough here
         BlockIORequest(const BlockIORequest& request);
         BlockIORequest& operator=(const BlockIORequest& request);
         */
