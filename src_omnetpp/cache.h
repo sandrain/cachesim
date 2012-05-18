@@ -43,12 +43,9 @@ class LocalCache : public Cache
 
         enum { GATE_INDEX_DRAM = 0, GATE_INDEX_SSD = 1, GATE_INDEX_HDD = 2 };
 
-        std::vector<int> _gateRequest;
-        std::vector<int> _gateResponse;
-};
-
-class AggregatedCache : public Cache
-{
+        std::vector<int> gateRequest;
+        std::vector<int> gateResponse;
+        std::vector<__u64> capacity;
 };
 
 #endif  /** __CACHE_H__ */
