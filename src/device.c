@@ -42,8 +42,7 @@ struct storage *storage_init(__u32 node,
 		self->stat_reads = self->stat_writes = 0;
 		self->ops = ops;
 
-		if (!wear)
-			self->wear = NULL;
+		self->wear = wear ? (__u64 *) &self[1] : NULL;
 	}
 
 	return self;
@@ -66,6 +65,13 @@ static __u64 generic_read_block(struct storage *self, __u64 offset, __u64 len)
 static __u64 generic_write_block(struct storage *self, __u64 offset, __u64 len)
 {
 	self->stat_writes += len;
+
+	if (self->wear) {
+		__u64 i;
+
+		for (i = offset; i < len; i++)
+			self->wear[i]++;
+	}
 
 	return self->latency_write * len;
 }

@@ -4,9 +4,11 @@
 #include <linux/types.h>
 #include "config.h"
 
+struct storage;
+
 struct storage_operations {
-	__u64 (*read_block) (__u64 offset, __u64 len);
-	__u64 (*write_block) (__u64 offset, __u64 len);
+	__u64 (*read_block) (struct storage *self, __u64 offset, __u64 len);
+	__u64 (*write_block) (struct storage *self, __u64 offset, __u64 len);
 };
 
 extern struct storage_operations generic_storage_ops;
@@ -26,7 +28,7 @@ struct storage {
 
 	struct storage_operations *ops;
 
-	__u64 wear[0];
+	__u64 *wear;
 };
 
 struct storage *storage_init(__u32 node,
@@ -44,7 +46,7 @@ static inline struct storage *storage_init_ram(__u32 node,
 
 	return storage_init(node, block_size, block_count,
 				latency_read, latency_write, wear,
-				generic_storage_ops);
+				&generic_storage_ops);
 }
 
 static inline struct storage *storage_init_ssd(__u32 node,
@@ -56,7 +58,7 @@ static inline struct storage *storage_init_ssd(__u32 node,
 
 	return storage_init(node, block_size, block_count,
 				latency_read, latency_write, wear,
-				generic_storage_ops);
+				&generic_storage_ops);
 }
 
 static inline struct storage *storage_init_hdd(__u32 node,
@@ -68,7 +70,7 @@ static inline struct storage *storage_init_hdd(__u32 node,
 
 	return storage_init(node, block_size, block_count,
 				latency_read, latency_write, wear,
-				generic_storage_ops);
+				&generic_storage_ops);
 }
 
 void storage_exit(struct storage *self);
