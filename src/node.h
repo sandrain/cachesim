@@ -23,7 +23,16 @@ struct node {
 	struct node_opearations *ops;
 };
 
-struct node_init(__u64 id);
+struct node *node_init(__u32 id, struct ioapp *app, struct local_cache *cache,
+		struct storage *ram, struct storage *ssd, struct storage *hdd,
+		struct node_operations *ops);
+
+struct node *node_init_compute(__u32 id, struct ioapp *app,
+			struct storage *ram, struct storage *ssd,
+			struct storage *hdd);
+
+struct node *node_init_pfs(struct storage *ram, struct storage *ssd,
+			struct storage *hdd);
 
 void node_exit(struct node *self);
 
