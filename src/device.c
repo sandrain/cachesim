@@ -55,14 +55,14 @@ void storage_exit(struct storage *self)
 		free(self);
 }
 
-static __u64 generic_read_block(struct storage *self, __u64 offset, __u64 len)
+static int generic_read_block(struct storage *self, __u64 offset, __u64 len)
 {
 	self->stat_reads += len;
 
-	return self->latency_read * len;
+	return 0;
 }
 
-static __u64 generic_write_block(struct storage *self, __u64 offset, __u64 len)
+static int generic_write_block(struct storage *self, __u64 offset, __u64 len)
 {
 	self->stat_writes += len;
 
@@ -73,7 +73,7 @@ static __u64 generic_write_block(struct storage *self, __u64 offset, __u64 len)
 			self->wear[i]++;
 	}
 
-	return self->latency_write * len;
+	return 0;
 }
 
 struct storage_operations generic_storage_ops = {

@@ -17,27 +17,121 @@
  * 
  */
 #include <stdlib.h>
+#include <string.h>
 #include <errno.h>
 
+#include "device.h"
+#include "cache.h"
 #include "node.h"
+#include "cachesim.h"
+
+extern int errno;
 
 struct node *node_init(__u32 id, struct ioapp *app, struct local_cache *cache,
 		struct storage *ram, struct storage *ssd, struct storage *hdd,
-		struct node_operations *ops)
+		struct node_operations *ops, void *private)
 {
-}
+	struct node *self;
 
-struct node *node_init_compute(__u32 id, struct ioapp *app,
-		struct storage *ram, struct storage *ssd, struct storage *hdd)
-{
-}
+	if (!ram || !ops) {
+		errno = EINVAL;
+		return NULL;
+	}
 
-struct node *node_init_pfs(struct storage *ram, struct storage *ssd,
-			struct storage *hdd)
-{
+	if (!id && !app) {
+		errno = EINVAL;
+		return NULL;
+	}
+
+	self = malloc(sizeof(*self));
+	if (self) {
+		self->id = id;
+		self->app = app;
+		self->cache = cache;
+		self->ram = ram;
+		self->ssd = ssd;
+		self->hdd = hdd;
+		self->ops = ops;
+		self->private = private;
+	}
+
+	return self;
 }
 
 void node_exit(struct node *self)
 {
+	if (self)
+		free(self);
+}
+
+static int generic_find_block(struct node *self, __u32 remote, __u64 block)
+{
+	if (self->id == 0) {
+		return -EINVAL;
+	}
+
+	if (!self->cache)
+		return -ENODEV;
+
+	return self->cache->ops->get_block(self->cache,block);
+}
+
+static int generic_read_block(struct node *self, __u32 remote, __u64 block)
+{
+	if (self->id == 0)
+		return self->hdd->ops->read_block(self->hdd, block, 1);
+	else
+		return self->cache->ops->read_block(self->cache, block);
+}
+
+static int generic_write_block(struct node *self, __u32 remote, __u64 block)
+{
+	if (self->id == 0)
+		return self->hdd->ops->write_block(self->hdd, block, 1);
+	else
+		return self->cache->ops->write_block(self->cache, block);
+
+	return 0;
+}
+
+struct node_operations compute_node_operations = {
+	.find_block	= &generic_find_block,
+	.read_block	= &generic_read_block,
+	.write_block	= &generic_write_block,
+};
+
+struct node_operations pfs_node_operations = {
+	.find_block	= &generic_find_block,
+	.read_block	= &generic_read_block,
+	.write_block	= &generic_write_block,
+};
+
+void node_get_statistics(struct node *self, struct node_statistics *stat)
+{
+	if (!self || !stat)
+		return;
+
+	memset(stat, 0, sizeof(*stat));
+
+	if (self->ram) {
+		stat->ram_reads = self->ram->stat_reads;
+		stat->ram_writes = self->ram->stat_writes;
+	}
+
+	if (self->ssd) {
+		stat->ssd_reads = self->ssd->stat_reads;
+		stat->ssd_writes = self->ssd->stat_writes;
+	}
+
+	if (self->hdd) {
+		stat->hdd_reads = self->hdd->stat_reads;
+		stat->hdd_writes = self->hdd->stat_writes;
+	}
+
+	if (self->cache) {
+		stat->cache_hits = self->cache->stat_hits;
+		stat->cache_misses = self->cache->stat_misses;
+		stat->cache_replacements = self->cache->stat_replacements;
+	}
 }
 

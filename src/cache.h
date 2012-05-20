@@ -7,6 +7,7 @@ struct storage;
 struct local_cache;
 
 struct local_cache_ops {
+	int (*get_block) (struct local_cache *self, __u64 block);
 	int (*read_block) (struct local_cache *self, __u64 block);
 	int (*write_block) (struct local_cache *self, __u64 block);
 };

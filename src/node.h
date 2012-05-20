@@ -1,10 +1,11 @@
-#ifdef	__NODE_H__
+#ifndef	__NODE_H__
 #define	__NODE_H__
 
 #include <linux/types.h>
 
 struct local_cache;
 struct node;
+struct node_statistics;
 
 /** TODO
  * node_operation represent the following cases:
@@ -35,23 +36,36 @@ struct node {
 
 	void *private;
 
-	struct node_opearations *ops;
+	struct node_operations *ops;
 };
 
 struct node *node_init(__u32 id, struct ioapp *app, struct local_cache *cache,
 		struct storage *ram, struct storage *ssd, struct storage *hdd,
-		struct node_operations *ops);
-
-struct node *node_init_compute(__u32 id, struct ioapp *app,
-		struct storage *ram, struct storage *ssd, struct storage *hdd);
-
-struct node *node_init_pfs(struct storage *ram, struct storage *ssd,
-			struct storage *hdd);
+		struct node_operations *ops, void *private);
 
 void node_exit(struct node *self);
 
 extern struct node_operations compute_node_operations;
 extern struct node_operations pfs_node_operations;
+
+static inline
+struct node *node_init_compute(__u32 id, struct ioapp *app,
+		struct local_cache *cache,
+		struct storage *ram, struct storage *ssd, struct storage *hdd)
+{
+	return node_init(id, app, cache, ram, ssd, hdd,
+			&compute_node_operations, NULL);
+}
+
+static inline
+struct node *node_init_pfs(struct storage *ram, struct storage *ssd,
+		struct local_cache *cache, struct storage *hdd)
+{
+	return node_init(0, NULL, cache, ram, ssd, hdd, &pfs_node_operations,
+			NULL);
+}
+
+void node_get_statistics(struct node *self, struct node_statistics *stat);
 
 #endif	/** __NODE_H__ */
 

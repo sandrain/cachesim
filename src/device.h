@@ -7,8 +7,8 @@
 struct storage;
 
 struct storage_operations {
-	__u64 (*read_block) (struct storage *self, __u64 offset, __u64 len);
-	__u64 (*write_block) (struct storage *self, __u64 offset, __u64 len);
+	int (*read_block) (struct storage *self, __u64 offset, __u64 len);
+	int (*write_block) (struct storage *self, __u64 offset, __u64 len);
 };
 
 extern struct storage_operations generic_storage_ops;
