@@ -34,19 +34,21 @@ struct node {
 	struct storage *ssd;
 	struct storage *hdd;
 
+	struct node *pfs;
+
 	void *private;
 
 	struct node_operations *ops;
 };
+
+extern struct node_operations compute_node_operations;
+extern struct node_operations pfs_node_operations;
 
 struct node *node_init(__u32 id, struct ioapp *app, struct local_cache *cache,
 		struct storage *ram, struct storage *ssd, struct storage *hdd,
 		struct node_operations *ops, void *private);
 
 void node_exit(struct node *self);
-
-extern struct node_operations compute_node_operations;
-extern struct node_operations pfs_node_operations;
 
 static inline
 struct node *node_init_compute(__u32 id, struct ioapp *app,
@@ -64,6 +66,15 @@ struct node *node_init_pfs(struct storage *ram, struct storage *ssd,
 	return node_init(0, NULL, cache, ram, ssd, hdd, &pfs_node_operations,
 			NULL);
 }
+
+static inline
+void node_set_pfs(struct node *self, struct node *pfs)
+{
+	if (self)
+		self->pfs = pfs;
+}
+
+int node_service_ioapp(struct node *self);
 
 void node_get_statistics(struct node *self, struct node_statistics *stat);
 

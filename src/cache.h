@@ -47,6 +47,11 @@ struct local_cache *local_cache_init(__u32 node, int policy, int ndevs,
 
 void local_cache_exit(struct local_cache *self);
 
+static inline
+int local_cache_rw_block(struct local_cache *self, struct io_request *req)
+{
+}
+
 extern struct local_cache_ops random_cache_ops;
 extern struct local_cache_ops fifo_cache_ops;
 extern struct local_cache_ops lru_cache_ops;

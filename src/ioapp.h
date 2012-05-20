@@ -4,12 +4,13 @@
 #include <stdio.h>
 #include <linux/types.h>
 
+enum {
+	IOREQ_TYPE_EOF = 0,
+	IOREQ_TYPE_READ,
+	IOREQ_TYPE_WRITE
+};
+
 struct io_request {
-
-#define	IOREQ_TYPE_EOF		0
-#define	IOREQ_TYPE_READ		1
-#define	IOREQ_TYPE_WRITE	2
-
 	int type;
 	__u64 offset;
 	__u64 len;

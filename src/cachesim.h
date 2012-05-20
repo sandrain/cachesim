@@ -3,6 +3,12 @@
 
 #include <linux/types.h>
 
+#include "config.h"
+#include "device.h"
+#include "ioapp.h"
+#include "cache.h"
+#include "node.h"
+
 struct node_statistics {
 	__u32 id;
 

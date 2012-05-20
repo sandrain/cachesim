@@ -106,6 +106,16 @@ struct node_operations pfs_node_operations = {
 	.write_block	= &generic_write_block,
 };
 
+int node_service_ioapp(struct node *self)
+{
+	int res = 0;
+	struct io_request req;
+
+	res = ioapp_next_request(self->ioapp, &req);
+	if (res == IOREQ_TYPE_EOF)
+		return res;
+}
+
 void node_get_statistics(struct node *self, struct node_statistics *stat)
 {
 	if (!self || !stat)
