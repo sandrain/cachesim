@@ -36,7 +36,7 @@ struct node *node_init(struct node *self,
 		return NULL;
 	}
 
-	if (!id && !app) {
+	if (id && !app) {
 		errno = EINVAL;
 		return NULL;
 	}

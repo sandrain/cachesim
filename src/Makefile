@@ -3,8 +3,8 @@
 #
 
 CC	= gcc
-CFLAGS	= -ggdb -O0
-LDFALGS	= -lpthread
+CFLAGS	= -ggdb -O0 -Wall
+LDFLAGS	= -lpthread
 
 TARGET	= cachesim
 OBJS	= cachesim.o cache.o ioapp.o node.o storage.o

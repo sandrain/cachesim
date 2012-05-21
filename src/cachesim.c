@@ -134,6 +134,7 @@ static int cachesim_prepare(struct cachesim_config *config)
 	struct local_cache *cache = NULL;
 	struct ioapp *app = NULL;
 
+	struct node *nodes = NULL;
 	struct storage *ram = NULL;
 	struct storage *ssd = NULL;
 	struct storage *hdd = NULL;
@@ -149,9 +150,8 @@ static int cachesim_prepare(struct cachesim_config *config)
 	devcount_pfs += config->pfsnode_hdd_size ? 1 : 0;
 	devcount = devcount_pfs + devcount_com * config->nodes;
 
-	memsize = sizeof(pthread_t) * config->nodes;
-	memsize += (sizeof(struct node) + sizeof(struct local_cache))
-				* (config->nodes + 1);
+	memsize = (sizeof(pthread_t) + sizeof(struct node))* config->nodes;
+	memsize += sizeof(struct local_cache) * (config->nodes + 1);
 	memsize += sizeof(struct storage) * devcount;
 	memsize += sizeof(struct ioapp) * config->nodes;
 
@@ -160,12 +160,13 @@ static int cachesim_prepare(struct cachesim_config *config)
 
 	threads = (pthread_t *) memptr;
 	node_data = (struct node **) &threads[config->nodes];
+	nodes = (struct node *) &node_data[config->nodes];
 	cache = (struct local_cache *) &node_data[config->nodes + 1];
 	storage = (struct storage *) &cache[config->nodes + 1];
 	app = (struct ioapp *) &storage[devcount];
 
 	/** initialize computing nodes */
-	for (i = 0; i < config->nodes; i++) {
+	for (i = 0, pos = 0; i < config->nodes; i++) {
 		node = i + 1;
 		ram = storage_init_ram(&storage[pos++], node,
 				config->comnode_ram_size);
@@ -190,7 +191,7 @@ static int cachesim_prepare(struct cachesim_config *config)
 		if (!lapp)
 			return -errno;
 
-		node_data[i] = node_init_compute(node_data[i], node, lapp,
+		node_data[i] = node_init_compute(&nodes[i], node, lapp,
 						lcache, ram, ssd, hdd);
 		if (!node_data[i])
 			return -errno;
@@ -334,7 +335,7 @@ static void cleanup(void)
 			}
 			node_exit(current);
 		}
-		free(node_data);
+		free(memptr);
 	}
 
 	if (cachesim_config->network_cost)
