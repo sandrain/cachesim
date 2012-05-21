@@ -24,7 +24,25 @@
 
 #include "cachesim.h"
 
-struct cachesim_config cachesim_config;
+/**
+ * default config values
+ */
+static int __ram_wear = 0;
+static int __ssd_wear = 1;
+static int __hdd_wear = 0;
+static __u32 __block_size = 512;
+static __u64 __ram_latency_read = 0;
+static __u64 __ram_latency_write = 0;
+static __u64 __ssd_latency_read = 10;
+static __u64 __ssd_latency_write = 20;
+static __u64 __hdd_latency_read = 100;
+static __u64 __hdd_latency_write = 100;
+
+static __u64 __netcost_local = 5;
+static __u64 __netcost_pfs = 5;
+
+static struct cachesim_config __cachesim_config;
+static pthread_mutex_t __pfs_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 int main(int argc, char **argv)
 {

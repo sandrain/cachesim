@@ -1,6 +1,7 @@
 #ifndef	__CONFIG_H__
 #define	__CONFIG_H__
 
+#include <pthread.h>
 #include <linux/types.h>
 
 struct cachesim_config {
@@ -34,6 +35,18 @@ static inline void set_network_access(__u32 n1, __u32 n2)
 {
 	__u64 *grid = cachesim_config->network_access;
 	grid[n1 * cachesim_config->nodes + n2]++;
+}
+
+extern pthread_mutex_t *pfs_mutex;
+
+static inline int pfs_lock(void)
+{
+	pthread_mutex_lock(pfs_mutex);
+}
+
+static inline int pfs_unlock(void)
+{
+	pthread_mutex_unlock(pfs_mutex);
 }
 
 #endif	/** __CONFIG_H__ */
