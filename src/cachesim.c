@@ -57,11 +57,12 @@ static __u64 _netcost_pfs = 5;
 
 static char *trace_file = "test.trace";
 
-static struct cachesim_config _cachesim_config;
+static struct cachesim_config __cachesim_config;
 static pthread_mutex_t __pfs_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_barrier_t barrier;
 
 pthread_mutex_t *pfs_mutex = &__pfs_mutex;
+struct cachesim_config *cachesim_config = &__cachesim_config;
 
 /**
  * NOTE: About the simulation threads
@@ -81,7 +82,7 @@ static struct cachesim_config *read_configuration(char *config_file)
 {
 	__u32 i;
 	__u64 *netgrid;
-	struct cachesim_config *config = &_cachesim_config;
+	struct cachesim_config *config = &__cachesim_config;
 
 	config->nodes = _num_comnodes;
 	config->block_size = _block_size;

@@ -108,3 +108,6 @@ void node_get_statistics(struct node *self, struct node_statistics *stat)
 	}
 }
 
+struct node_operations compute_node_operations;
+struct node_operations pfs_node_operations;
+

@@ -5,6 +5,9 @@
 
 #define	PFS_NODE_ID	0
 
+struct node_operations {
+};
+
 struct node {
 	__u32 id;
 
@@ -30,7 +33,7 @@ struct node *node_init(struct node *self,
 		struct storage *ram, struct storage *ssd, struct storage *hdd,
 		struct node_operations *ops, void *private);
 
-void node_exit(struct node *self) {}
+static inline void node_exit(struct node *self) {}
 
 static inline
 struct node *node_init_compute(struct node *self,
