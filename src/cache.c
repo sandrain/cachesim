@@ -23,6 +23,7 @@
 
 struct local_cache *local_cache_init(__u32 node, int policy, int ndevs,
 				struct storage *devs[N_CACHE_DEVS],
+				struct node *pfs,
 				struct local_cache_ops *ops, void *data)
 {
 	int i;
@@ -42,6 +43,7 @@ struct local_cache *local_cache_init(__u32 node, int policy, int ndevs,
 		self->block_size = devs[0]->block_size;
 		self->private = data;
 		self->ops = ops;
+		self->pfs = pfs;
 
 		for (i = 0; i < ndevs; i++)
 			self->devs[i] = devs[i];
@@ -77,5 +79,4 @@ int local_cache_rw_block(struct local_cache *self, struct io_request *req)
 
 	return res;
 }
-
 

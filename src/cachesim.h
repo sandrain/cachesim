@@ -1,6 +1,7 @@
 #ifndef	__CACHESIM_H__
 #define	__CACHESIM_H__
 
+#include <stdio.h>
 #include <errno.h>
 #include <linux/types.h>
 
@@ -25,6 +26,9 @@ struct node_statistics {
 	__u64 cache_replacements;
 };
 
+static inline void print_statistics(FILE *fp, struct node_statistics *stat)
+{
+}
 
 #include "config.h"
 #include "ioapp.h"

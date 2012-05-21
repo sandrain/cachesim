@@ -8,7 +8,6 @@ struct local_cache;
 struct local_cache_ops {
 	int (*read_block) (struct local_cache *self, struct io_request *req);
 	int (*write_block) (struct local_cache *self, struct io_request *req);
-	int (*insert_block) (struct local_cache *self, struct io_request *req);
 };
 
 enum {
@@ -39,13 +38,12 @@ struct local_cache {
 
 struct local_cache *local_cache_init(__u32 node, int policy, int ndevs,
 				struct storage *devs[N_CACHE_DEVS],
+				struct node *pfs,
 				struct local_cache_ops *ops, void *data);
 
 void local_cache_exit(struct local_cache *self);
 
 int local_cache_rw_block(struct local_cache *self, struct io_request *req);
-
-int local_cache_insert_block(struct local_cache *self, struct io_request *req);
 
 enum {
 	CACHE_POLICY_RANDOM = 0,

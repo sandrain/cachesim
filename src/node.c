@@ -67,19 +67,7 @@ int node_service_ioapp(struct node *self)
 	if (res == IOREQ_TYPE_EOF)
 		return res;
 
-	res = local_cache_rw_block(self->cache, &req);
-	if (res == CACHE_HIT)
-		return res;
-
-	/** now we should request to the pfs, which requires synchronization.
-	 */
-	pfs_lock();
-	res = node_pfs_rw_block(self->pfs, &req);
-	pfs_unlock();
-
-	local_cache_insert_block(self->cache, &req);
-
-	return res;
+	return local_cache_rw_block(self->cache, &req);
 }
 
 int node_pfs_rw_block(struct node *self, struct io_request *req)

@@ -59,6 +59,7 @@ static char *trace_file = "test.trace";
 
 static struct cachesim_config _cachesim_config;
 static pthread_mutex_t __pfs_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_barrier_t barrier;
 
 static pthread_t *threads;
 static struct node **node_data;
@@ -225,6 +226,23 @@ static int cachesim_prepare(struct cachesim_config *config)
 
 void *thread_main(void *arg)
 {
+	int res;
+	struct node_statistics stat;
+	struct node *node = (struct node *arg);
+
+	do {
+		res = node_service_ioapp(node);
+	} while (res != IOREQ_TYPE_EOF);
+
+	node_get_statistics(node, &stat);
+
+	pthread_barrier_wait(barrier);
+
+	pfs_lock();
+	print_statistics(stdout, &stat);
+	pfs_unlock();
+
+	return (void *) 0;
 }
 
 static void cleanup(void)
@@ -287,6 +305,8 @@ int main(int argc, char **argv)
 		res = errno;
 		goto out;
 	}
+
+	pthread_barrier_init(&barrier, cachesim_config->nodes - 1);
 
 	for (i = 1; i < cachesim_config->nodes; i++) {
 		if (pthread_create(&threads[i], NULL, thread_main, node_data))
