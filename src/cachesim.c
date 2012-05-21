@@ -374,13 +374,16 @@ int main(int argc, char **argv)
 
 	pthread_barrier_init(&barrier, NULL, cachesim_config->nodes);
 
-	for (i = 1; i < cachesim_config->nodes; i++) {
-		if (pthread_create(&threads[i], NULL, thread_main, node_data))
+	for (i = 0; i < cachesim_config->nodes; i++) {
+		if (pthread_create(&threads[i], NULL,
+					thread_main, node_data[i])) {
+			i++;
 			goto out_thread;
+		}
 	}
 
 out_thread:
-	for (--i; i > 0; i--)
+	for (--i; i >= 0; i--)
 		pthread_join(threads[i], (void **) NULL);
 out:
 	cleanup();
