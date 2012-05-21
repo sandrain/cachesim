@@ -42,7 +42,7 @@ struct node *node_init_compute(__u32 id, struct ioapp *app,
 
 static inline
 struct node *node_init_pfs(struct storage *ram, struct storage *ssd,
-		struct local_cache *cache, struct storage *hdd)
+		struct storage *hdd, struct local_cache *cache)
 {
 	return node_init(0, NULL, cache, ram, ssd, hdd, &pfs_node_operations,
 			NULL);

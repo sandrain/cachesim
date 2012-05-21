@@ -12,6 +12,14 @@ struct cachesim_config {
 	int ssd_wear;
 	int hdd_wear;
 
+	__u64 comnode_ram_size;
+	__u64 comnode_ssd_size;
+	__u64 comnode_hdd_size;
+
+	__u64 pfsnode_ram_size;
+	__u64 pfsnode_ssd_size;
+	__u64 pfsnode_hdd_size;
+
 	__u64 ram_latency_read;
 	__u64 ram_latency_write;
 	__u64 ssd_latency_read;
@@ -19,8 +27,10 @@ struct cachesim_config {
 	__u64 hdd_latency_read;
 	__u64 hdd_latency_write;
 
+	__u64 *network_cost;
 	__u64 *network_access;
-	__u64 network_cost[0];
+
+	char *trace_file;
 };
 
 extern struct cachesim_config *cachesim_config;

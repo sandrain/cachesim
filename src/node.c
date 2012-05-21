@@ -71,8 +71,15 @@ int node_service_ioapp(struct node *self)
 	if (res == CACHE_HIT)
 		return res;
 
-	/** now we should request to the pfs. */
-	return node_pfs_rw_block(self->pfs, &req);
+	/** now we should request to the pfs, which requires synchronization.
+	 */
+	pfs_lock();
+	res = node_pfs_rw_block(self->pfs, &req);
+	pfs_unlock();
+
+	local_cache_insert_block(self->cache, &req);
+
+	return res;
 }
 
 int node_pfs_rw_block(struct node *self, struct io_request *req)
