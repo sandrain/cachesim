@@ -383,7 +383,7 @@ int main(int argc, char **argv)
 	}
 
 out_thread:
-	for (--i; i >= 0; i--)
+	while (i--)
 		pthread_join(threads[i], (void **) NULL);
 out:
 	cleanup();

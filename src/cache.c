@@ -52,6 +52,10 @@ int local_cache_rw_block(struct local_cache *self, struct io_request *req)
 {
 	int res = 0;
 
+	dump_io_request(stderr, req);
+
+	return 1;
+
 	switch (req->type) {
 	case IOREQ_TYPE_ANY:
 	case IOREQ_TYPE_READ:

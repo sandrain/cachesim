@@ -19,6 +19,12 @@ struct io_request {
 	int type;
 };
 
+static inline void dump_io_request(FILE *fp, struct io_request *req)
+{
+	fprintf(fp, "node %u: (%llu, %llu)\n",
+			req->node, req->offset, req->len);
+}
+
 struct ioapp {
 	__u32 node;
 	FILE *trace;
