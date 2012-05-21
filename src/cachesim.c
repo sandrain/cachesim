@@ -25,9 +25,9 @@
 
 #include "cachesim.h"
 
-static const __u64 MB = 1 << 20;
-static const __u64 GB = 1 << 30;
-static const __u64 TB = 1 << 40;
+#define MB	((__u64) 1 << 20)
+#define GB	((__u64) 1 << 30)
+#define TB	((__u64) 1 << 40)
 
 /**
  * default config values
@@ -61,6 +61,8 @@ static struct cachesim_config _cachesim_config;
 static pthread_mutex_t __pfs_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_barrier_t barrier;
 
+pthread_mutex_t *pfs_mutex = &__pfs_mutex;
+
 /**
  * NOTE: About the simulation threads
  * The simulation runs num_comnodes threads, which means that no thread is
@@ -74,7 +76,6 @@ static struct node **node_data;	/** holds the comnode data */
 static struct node __pfs_node;	/** the only pfs node */
 static struct node *pfs_node;
 static char *memptr;
-
 
 static struct cachesim_config *read_configuration(char *config_file)
 {
@@ -111,14 +112,14 @@ static struct cachesim_config *read_configuration(char *config_file)
 	config->network_access = &netgrid[config->nodes * config->nodes];
 
 	for (i = 0; i < config->nodes * config->nodes; i++) {
-		config->network_cost[i] = netcost_local;
+		config->network_cost[i] = _netcost_local;
 		config->network_access[i] = 0;
 	}
 
 	for (i = 0; i < config->nodes; i++)
-		config->network_cost[i] = netcost_pfs;
+		config->network_cost[i] = _netcost_pfs;
 	for (i = 0; i < config->nodes * config->nodes; i += config->nodes)
-		config->network_cost[i] = netcost_pfs;
+		config->network_cost[i] = _netcost_pfs;
 
 	return config;
 }
@@ -128,9 +129,9 @@ static int cachesim_prepare(struct cachesim_config *config)
 	__u32 i, pos, node;
 	int devcount, devcount_com, devcount_pfs;
 	size_t memsize;
-	struct storage *storage;
-	struct cache *cache;
-	struct ioapp *app;
+	struct storage *storage = NULL;
+	struct local_cache *cache = NULL;
+	struct ioapp *app = NULL;
 
 	struct storage *ram = NULL;
 	struct storage *ssd = NULL;
@@ -139,7 +140,6 @@ static int cachesim_prepare(struct cachesim_config *config)
 	struct ioapp *lapp = NULL;
 
 	/** allocate memory space.. it's kind of painful :-( */
-	storage = cache = app = NULL;
 	devcount_com = devcount_pfs = 1;
 
 	devcount_com += config->comnode_ssd_size ? 1 : 0;
@@ -158,8 +158,8 @@ static int cachesim_prepare(struct cachesim_config *config)
 		return -ENOMEM;
 
 	threads = (pthread_t *) memptr;
-	node_data = (struct node *) &threads[config->nodes];
-	cache = (struct cache *) &node_data[config->nodes + 1];
+	node_data = (struct node **) &threads[config->nodes];
+	cache = (struct local_cache *) &node_data[config->nodes + 1];
 	storage = (struct storage *) &cache[config->nodes + 1];
 	app = (struct ioapp *) &storage[devcount];
 
@@ -293,7 +293,7 @@ void *thread_main(void *arg)
 {
 	int res;
 	struct node_statistics stat;
-	struct node *node = (struct node *arg);
+	struct node *node = (struct node *) arg;
 
 	do {
 		res = node_service_ioapp(node);
@@ -301,7 +301,7 @@ void *thread_main(void *arg)
 
 	node_get_statistics(node, &stat);
 
-	pthread_barrier_wait(barrier);
+	pthread_barrier_wait(&barrier);
 
 	pfs_lock();
 	print_statistics(stdout, &stat);
@@ -315,7 +315,7 @@ static void cleanup(void)
 	__u32 i;
 
 	if (node_data) {
-		for (i = 0; i < config->nodes; i++) {
+		for (i = 0; i < cachesim_config->nodes; i++) {
 			struct node *current = node_data[i];
 			if (current) {
 				if (current->app)
@@ -370,7 +370,7 @@ int main(int argc, char **argv)
 		goto out;
 	}
 
-	pthread_barrier_init(&barrier, cachesim_config->nodes - 1);
+	pthread_barrier_init(&barrier, NULL, cachesim_config->nodes);
 
 	for (i = 1; i < cachesim_config->nodes; i++) {
 		if (pthread_create(&threads[i], NULL, thread_main, node_data))
@@ -379,7 +379,7 @@ int main(int argc, char **argv)
 
 out_thread:
 	for (--i; i > 0; i--)
-		pthread_join(&threads[i]);
+		pthread_join(threads[i], (void **) NULL);
 out:
 	cleanup();
 	return res;

@@ -51,12 +51,12 @@ extern pthread_mutex_t *pfs_mutex;
 
 static inline int pfs_lock(void)
 {
-	pthread_mutex_lock(pfs_mutex);
+	return pthread_mutex_lock(pfs_mutex);
 }
 
 static inline int pfs_unlock(void)
 {
-	pthread_mutex_unlock(pfs_mutex);
+	return pthread_mutex_unlock(pfs_mutex);
 }
 
 #endif	/** __CONFIG_H__ */

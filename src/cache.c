@@ -22,13 +22,10 @@
 #include "cachesim.h"
 
 struct local_cache *local_cache_init(struct local_cache *self,
-				__u32 node, int policy, int ndevs,
-				struct storage *devs[N_CACHE_DEVS],
-				struct node *pfs,
+				__u32 node, int policy,
+				struct node *local, struct node *pfs,
 				struct local_cache_ops *ops, void *data)
 {
-	int i;
-
 	if (!self) {
 		errno = EINVAL;
 		return NULL;
@@ -45,10 +42,8 @@ struct local_cache *local_cache_init(struct local_cache *self,
 	self->policy = policy;
 	self->private = data;
 	self->ops = ops;
+	self->local = local;
 	self->pfs = pfs;
-
-	for (i = 0; i < ndevs; i++)
-		self->devs[i] = devs[i];
 
 	return self;
 }
