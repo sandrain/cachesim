@@ -1,13 +1,10 @@
 #ifndef	__CACHESIM_H__
 #define	__CACHESIM_H__
 
+#include <errno.h>
 #include <linux/types.h>
 
-#include "config.h"
-#include "device.h"
-#include "ioapp.h"
-#include "cache.h"
-#include "node.h"
+extern int errno;
 
 struct node_statistics {
 	__u32 id;
@@ -27,6 +24,13 @@ struct node_statistics {
 	__u64 cache_misses;
 	__u64 cache_replacements;
 };
+
+
+#include "config.h"
+#include "ioapp.h"
+#include "storage.h"
+#include "cache.h"
+#include "node.h"
 
 #endif	/** __CACHESIM_H__ */
 

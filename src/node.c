@@ -18,11 +18,8 @@
  */
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 
 #include "cachesim.h"
-
-extern int errno;
 
 struct node *node_init(__u32 id, struct ioapp *app, struct local_cache *cache,
 		struct storage *ram, struct storage *ssd, struct storage *hdd,
@@ -61,55 +58,12 @@ void node_exit(struct node *self)
 		free(self);
 }
 
-static int generic_find_block(struct node *self, __u32 remote, __u64 block)
-{
-	if (self->id == 0) {
-		return -EINVAL;
-	}
-
-	if (!self->cache)
-		return -ENODEV;
-
-	return self->cache->ops->get_block(self->cache,block);
-}
-
-static int generic_read_block(struct node *self, __u32 remote, __u64 block)
-{
-	if (self->id == 0)
-		return self->hdd->ops->read_block(self->hdd, block, 1);
-	else
-		return self->cache->ops->read_block(self->cache, block);
-}
-
-static int generic_write_block(struct node *self, __u32 remote, __u64 block)
-{
-	if (self->id == 0)
-		return self->hdd->ops->write_block(self->hdd, block, 1);
-	else
-		return self->cache->ops->write_block(self->cache, block);
-
-	return 0;
-}
-
-struct node_operations compute_node_operations = {
-	.find_block	= &generic_find_block,
-	.read_block	= &generic_read_block,
-	.write_block	= &generic_write_block,
-};
-
-struct node_operations pfs_node_operations = {
-	.find_block	= &generic_find_block,
-	.read_block	= &generic_read_block,
-	.write_block	= &generic_write_block,
-};
-
 int node_service_ioapp(struct node *self)
 {
 	int res = 0;
 	struct io_request req;
-	struct node *pfs;
 
-	res = ioapp_next_request(self->ioapp, &req);
+	res = ioapp_next_request(self->app, &req);
 	if (res == IOREQ_TYPE_EOF)
 		return res;
 
@@ -128,11 +82,11 @@ int node_pfs_rw_block(struct node *self, struct io_request *req)
 	if (!self || !req)
 		return -EINVAL;
 
-	res = local_cache_rw_block(self->cache, &req);
+	res = local_cache_rw_block(self->cache, req);
 	if (res == CACHE_HIT)
 		return res;
 
-	return storage_rw_block(self->hdd, &req);
+	return storage_rw_block(self->hdd, req);
 }
 
 void node_get_statistics(struct node *self, struct node_statistics *stat)

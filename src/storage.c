@@ -55,6 +55,26 @@ void storage_exit(struct storage *self)
 		free(self);
 }
 
+int storage_rw_block(struct storage *self, struct io_request *req)
+{
+	int res = 0;
+
+	switch (req->type) {
+	case IOREQ_TYPE_ANY:
+	case IOREQ_TYPE_READ:
+		res = self->ops->read_block(self, req->offset, req->len);
+		break;
+	case IOREQ_TYPE_WRITE:
+		res = self->ops->write_block(self, req->offset, req->len);
+		break;
+	default:
+		res = -EINVAL;
+		break;
+	}
+
+	return res;
+}
+
 static int generic_read_block(struct storage *self, __u64 offset, __u64 len)
 {
 	self->stat_reads += len;

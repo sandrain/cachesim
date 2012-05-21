@@ -18,6 +18,7 @@ struct cachesim_config {
 	__u64 hdd_latency_read;
 	__u64 hdd_latency_write;
 
+	__u64 *network_access;
 	__u64 network_cost[0];
 };
 
@@ -27,6 +28,12 @@ static inline __u64 get_network_cost(__u32 n1, __u32 n2)
 {
 	__u64 *grid = cachesim_config->network_cost;
 	return grid[n1 * cachesim_config->nodes + n2];
+}
+
+static inline void set_network_access(__u32 n1, __u32 n2)
+{
+	__u64 *grid = cachesim_config->network_access;
+	grid[n1 * cachesim_config->nodes + n2]++;
 }
 
 #endif	/** __CONFIG_H__ */

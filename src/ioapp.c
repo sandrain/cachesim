@@ -20,11 +20,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 
 #include "ioapp.h"
-
-extern int errno;
 
 struct ioapp *ioapp_init(__u32 node, char *filename)
 {

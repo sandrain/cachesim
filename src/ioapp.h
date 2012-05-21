@@ -2,7 +2,7 @@
 #define	__IOAPP_H__
 
 #include <stdio.h>
-#include <linux/types.h>
+#include "cachesim.h"
 
 enum {
 	IOREQ_TYPE_EOF = 0,

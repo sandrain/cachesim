@@ -1,26 +1,7 @@
 #ifndef	__NODE_H__
 #define	__NODE_H__
 
-#include <linux/types.h>
-
-struct local_cache;
-struct node;
-struct node_statistics;
-
-/** TODO
- * node_operation represent the following cases:
- *  - The pfs node exposes this to other computes nodes; a compute node can
- *  request a block to the pfs node on local cache miss.
- *  - In a global cache, a compute node can request a block to another compute
- *  node; each compute node should expose this.
- *  - The global cache manager can query to a compute node about the block
- *  existence.
- */
-struct node_operations {
-	int (*find_block) (struct node *self, __u32 remote, __u64 block);
-	int (*read_block) (struct node *self, __u32 remote, __u64 block);
-	int (*write_block) (struct node *self, __u32 remote, __u64 block);
-};
+#include "cachesim.h"
 
 #define	PFS_NODE_ID	0
 
@@ -76,7 +57,7 @@ void node_set_pfs(struct node *self, struct node *pfs)
 
 int node_service_ioapp(struct node *self);
 
-int node_pfs_rw_block(struct node *pfs, struct request *req);
+int node_pfs_rw_block(struct node *pfs, struct io_request *req);
 
 void node_get_statistics(struct node *self, struct node_statistics *stat);
 

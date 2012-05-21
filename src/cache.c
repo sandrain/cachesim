@@ -18,12 +18,8 @@
  */
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 
-#include "device.h"
-#include "cache.h"
-
-extern int errno;
+#include "cachesim.h"
 
 struct local_cache *local_cache_init(__u32 node, int policy, int ndevs,
 				struct storage *devs[N_CACHE_DEVS],
@@ -61,4 +57,25 @@ void local_cache_exit(struct local_cache *self)
 	if (self)
 		free(self);
 }
+
+int local_cache_rw_block(struct local_cache *self, struct io_request *req)
+{
+	int res = 0;
+
+	switch (req->type) {
+	case IOREQ_TYPE_ANY:
+	case IOREQ_TYPE_READ:
+		res = self->ops->read_block(self, req);
+		break;
+	case IOREQ_TYPE_WRITE:
+		res = self->ops->write_block(self, req);
+		break;
+	default:
+		res = -EINVAL;
+		break;
+	}
+
+	return res;
+}
+
 
