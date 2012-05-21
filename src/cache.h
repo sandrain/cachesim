@@ -3,12 +3,7 @@
 
 #include "cachesim.h"
 
-struct local_cache;
-
-struct local_cache_ops {
-	int (*read_block) (struct local_cache *self, struct io_request *req);
-	int (*write_block) (struct local_cache *self, struct io_request *req);
-};
+struct local_cache_ops;
 
 enum {
 	CACHE_HIT = 0,
@@ -45,6 +40,20 @@ struct local_cache *local_cache_init(struct local_cache *self,
 static inline void local_cache_exit(struct local_cache *self) {}
 
 int local_cache_rw_block(struct local_cache *self, struct io_request *req);
+
+/**
+ * Each cache algorithm should implement the following methods.
+ * @init is called at the final step of the local_cache_init().
+ * @exit is called at the first step of the local_cache_exit().
+ * @read_block and @write_block are called inside the local_cache_rw_block
+ * function.
+ */
+struct local_cache_ops {
+	int (*init) (struct local_cache *self);
+	int (*exit) (struct local_cache *self);
+	int (*read_block) (struct local_cache *self, struct io_request *req);
+	int (*write_block) (struct local_cache *self, struct io_request *req);
+};
 
 enum {
 	CACHE_POLICY_RANDOM = 0,
