@@ -59,7 +59,7 @@ void ioapp_exit(struct ioapp *self)
 int ioapp_next_request(struct ioapp *self, struct io_request *req)
 {
 	char type;
-	__u64 offset, len;
+	__u64 offset, len, sequence;
 
 	if (!self || !req)
 		return -EINVAL;
@@ -81,17 +81,20 @@ int ioapp_next_request(struct ioapp *self, struct io_request *req)
 		if (line[0] == '#')
 			continue;
 
-		if (sscanf(line, "%c %llu %llu", &type, &offset, &len) != 3)
+		if (sscanf(line, "%llu %llu %c %llu",
+				&offset, &len, &type, &sequence) != 4)
 			return -EINVAL;
-
-		if (type != 'R' && type != 'W')
-			return -EINVAL;
-
 	} while (!type);
 
-	req->type = type == 'R' ? IOREQ_TYPE_READ : IOREQ_TYPE_WRITE;
+	switch (type) {
+	case 'R': req->type = IOREQ_TYPE_READ; break;
+	case 'W': req->type = IOREQ_TYPE_WRITE; break;
+	default: req->type = IOREQ_TYPE_ANY; break;
+	}
+
 	req->offset = offset;
 	req->len = len;
+	req->node = self->node;
 
 	return req->type;
 }

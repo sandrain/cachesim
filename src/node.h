@@ -76,6 +76,8 @@ void node_set_pfs(struct node *self, struct node *pfs)
 
 int node_service_ioapp(struct node *self);
 
+int node_pfs_rw_block(struct node *pfs, struct request *req);
+
 void node_get_statistics(struct node *self, struct node_statistics *stat);
 
 #endif	/** __NODE_H__ */

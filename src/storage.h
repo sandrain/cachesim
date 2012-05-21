@@ -1,10 +1,7 @@
 #ifndef	__DEVICE_H__
 #define	__DEVICE_H__
 
-#include <linux/types.h>
-#include "config.h"
-
-struct storage;
+#include "cachesim.h"
 
 struct storage_operations {
 	int (*read_block) (struct storage *self, __u64 offset, __u64 len);
@@ -71,6 +68,22 @@ static inline struct storage *storage_init_hdd(__u32 node,
 	return storage_init(node, block_size, block_count,
 				latency_read, latency_write, wear,
 				&generic_storage_ops);
+}
+
+static inline
+int storage_rw_block(struct storage *self, struct io_request *req)
+{
+	switch (req->type) {
+	case IOREQ_TYPE_ANY:
+	case IOREQ_TYPE_READ:
+		self->ops->read_block(self, req->offset, req->len);
+		break;
+	case IOREQ_TYPE_WRITE:
+		self->ops->write_block(self, req->offset, req->len);
+		break;
+	default:
+		break;
+	}
 }
 
 void storage_exit(struct storage *self);

@@ -5,6 +5,7 @@
 
 struct cachesim_config {
 	__u32 nodes;
+	__u32 block_size;
 
 	int ram_wear;
 	int ssd_wear;

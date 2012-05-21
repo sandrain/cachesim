@@ -17,7 +17,7 @@
  * 
  */
 #include <stdlib.h>
-#include "device.h"
+#include "cachesim.h"
 
 struct storage *storage_init(__u32 node,
 			__u64 block_size, __u64 block_count,

@@ -7,13 +7,16 @@
 enum {
 	IOREQ_TYPE_EOF = 0,
 	IOREQ_TYPE_READ,
-	IOREQ_TYPE_WRITE
+	IOREQ_TYPE_WRITE,
+	IOREQ_TYPE_ANY	/** for ARC trace files */
 };
 
 struct io_request {
-	int type;
+	__u32 node;
 	__u64 offset;
 	__u64 len;
+	__u64 sequence;
+	int type;
 };
 
 struct ioapp {

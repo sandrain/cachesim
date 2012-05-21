@@ -20,9 +20,6 @@
 #include <string.h>
 #include <errno.h>
 
-#include "device.h"
-#include "cache.h"
-#include "node.h"
 #include "cachesim.h"
 
 extern int errno;
@@ -110,10 +107,32 @@ int node_service_ioapp(struct node *self)
 {
 	int res = 0;
 	struct io_request req;
+	struct node *pfs;
 
 	res = ioapp_next_request(self->ioapp, &req);
 	if (res == IOREQ_TYPE_EOF)
 		return res;
+
+	res = local_cache_rw_block(self->cache, &req);
+	if (res == CACHE_HIT)
+		return res;
+
+	/** now we should request to the pfs. */
+	return node_pfs_rw_block(self->pfs, &req);
+}
+
+int node_pfs_rw_block(struct node *self, struct io_request *req)
+{
+	int res = 0;
+
+	if (!self || !req)
+		return -EINVAL;
+
+	res = local_cache_rw_block(self->cache, &req);
+	if (res == CACHE_HIT)
+		return res;
+
+	return storage_rw_block(self->hdd, &req);
 }
 
 void node_get_statistics(struct node *self, struct node_statistics *stat)
