@@ -17,16 +17,30 @@
  * 
  */
 #include <stdlib.h>
+#include <sys/time.h>
 #include "cachesim.h"
+
+static int rand_initialized;
+
+static inline __u64 get_random_frame(__u64 max)
+{
+	return (__u64) (drand48() * max);
+}
 
 static int random_init(struct local_cache *self)
 {
+	if (!rand_initialized) {
+		struct timeval tv;
+
+		gettimeofday(&tv, NULL);
+		srand48(tv.tv_usec);
+	}
+
 	return 0;
 }
 
-static int random_exit(struct local_cache *self)
+static void random_exit(struct local_cache *self)
 {
-	return 0;
 }
 
 static int random_read_block(struct local_cache *self, struct io_request *req)

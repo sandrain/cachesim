@@ -50,7 +50,7 @@ int local_cache_rw_block(struct local_cache *self, struct io_request *req);
  */
 struct local_cache_ops {
 	int (*init) (struct local_cache *self);
-	int (*exit) (struct local_cache *self);
+	void (*exit) (struct local_cache *self);
 	int (*read_block) (struct local_cache *self, struct io_request *req);
 	int (*write_block) (struct local_cache *self, struct io_request *req);
 };
@@ -67,18 +67,6 @@ extern struct local_cache_ops random_cache_ops;
 extern struct local_cache_ops fifo_cache_ops;
 extern struct local_cache_ops lru_cache_ops;
 extern struct local_cache_ops mru_cache_ops;
-
-struct local_cache *local_cache_init_random(__u32 node, int ndevs,
-				struct storage *devs[N_CACHE_DEVS]);
-
-struct local_cache *local_cache_init_fifo(__u32 node, int ndevs,
-				struct storage *devs[N_CACHE_DEVS]);
-
-struct local_cache *local_cache_init_lru(__u32 node, int ndevs,
-				struct storage *devs[N_CACHE_DEVS]);
-
-struct local_cache *local_cache_init_mru(__u32 node, int ndevs,
-				struct storage *devs[N_CACHE_DEVS]);
 
 #endif	/** __CACHE_H__ */
 
