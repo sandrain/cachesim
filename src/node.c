@@ -21,11 +21,15 @@
 
 #include "cachesim.h"
 
-struct node *node_init(__u32 id, struct ioapp *app, struct local_cache *cache,
+struct node *node_init(struct node *self,
+		__u32 id, struct ioapp *app, struct local_cache *cache,
 		struct storage *ram, struct storage *ssd, struct storage *hdd,
 		struct node_operations *ops, void *private)
 {
-	struct node *self;
+	if (!self) {
+		errno = EINVAL;
+		return NULL;
+	}
 
 	if (!ram || !ops) {
 		errno = EINVAL;
@@ -37,25 +41,16 @@ struct node *node_init(__u32 id, struct ioapp *app, struct local_cache *cache,
 		return NULL;
 	}
 
-	self = malloc(sizeof(*self));
-	if (self) {
-		self->id = id;
-		self->app = app;
-		self->cache = cache;
-		self->ram = ram;
-		self->ssd = ssd;
-		self->hdd = hdd;
-		self->ops = ops;
-		self->private = private;
-	}
+	self->id = id;
+	self->app = app;
+	self->cache = cache;
+	self->ram = ram;
+	self->ssd = ssd;
+	self->hdd = hdd;
+	self->ops = ops;
+	self->private = private;
 
 	return self;
-}
-
-void node_exit(struct node *self)
-{
-	if (self)
-		free(self);
 }
 
 int node_service_ioapp(struct node *self)

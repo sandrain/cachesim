@@ -24,8 +24,9 @@ enum {
 
 struct local_cache {
 	__u32 node;
-	__u64 block_size;
-	struct storage *devs[N_CACHE_DEVS];
+
+	struct node *local;
+	struct node *pfs;
 
 	__u64 stat_hits;
 	__u64 stat_misses;
@@ -36,12 +37,12 @@ struct local_cache {
 	struct local_cache_ops *ops;
 };
 
-struct local_cache *local_cache_init(__u32 node, int policy, int ndevs,
-				struct storage *devs[N_CACHE_DEVS],
-				struct node *pfs,
+struct local_cache *local_cache_init(struct local_cache *self,
+				__u32 node, int policy,
+				struct node *local, struct node *pfs,
 				struct local_cache_ops *ops, void *data);
 
-void local_cache_exit(struct local_cache *self);
+static inline void local_cache_exit(struct local_cache *self) {}
 
 int local_cache_rw_block(struct local_cache *self, struct io_request *req);
 

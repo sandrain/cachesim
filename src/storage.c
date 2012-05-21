@@ -19,31 +19,29 @@
 #include <stdlib.h>
 #include "cachesim.h"
 
-struct storage *storage_init(__u32 node,
-			__u64 block_size, __u64 block_count,
-			__u32 latency_read, __u32 latency_write,
-			int wear,
-			struct storage_operations *ops)
+struct storage *storage_init(struct storage *self, __u32 node, __u64 capacity,
+			__u32 latency_read, __u32 latency_write, int wear,
+			struct storage_operations *ops);
 {
-	struct storage *self = NULL;
-	size_t len = sizeof(*self);
-
-	if (wear)
-		len += sizeof(__u64) * block_count;
-
-	self = malloc(len);
-	if (self) {
-		self->node = node;
-		self->block_size = block_size;
-		self->block_count = block_count;
-		self->capacity = block_size * block_count;
-		self->latency_read = latency_read;
-		self->latency_write = latency_write;
-		self->stat_reads = self->stat_writes = 0;
-		self->ops = ops;
-
-		self->wear = wear ? (__u64 *) &self[1] : NULL;
+	if (!self) {
+		errno = EINVAL;
+		return NULL;
 	}
+
+	if (wear) {
+		self->wear = malloc(sizeof(__u64) * block_count);
+		if (!self->wear)
+			return NULL;
+	}
+
+	self->node = node;
+	self->capacity = capacity;
+	self->latency_read = latency_read;
+	self->latency_write = latency_write;
+	self->stat_reads = self->stat_writes = 0;
+	self->ops = ops;
+
+	self->wear = wear ? (__u64 *) &self[1] : NULL;
 
 	return self;
 }
@@ -51,8 +49,8 @@ struct storage *storage_init(__u32 node,
 
 void storage_exit(struct storage *self)
 {
-	if (self)
-		free(self);
+	if (self && self->wear)
+		free(self->wear);
 }
 
 int storage_rw_block(struct storage *self, struct io_request *req)

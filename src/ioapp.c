@@ -23,23 +23,22 @@
 
 #include "ioapp.h"
 
-struct ioapp *ioapp_init(__u32 node, char *filename)
+struct ioapp *ioapp_init(struct ioapp *self, __u32 node, char *filename)
 {
-	struct ioapp *self = NULL;
 	FILE *fp;
+
+	if (!self) {
+		errno = EINVAL;
+		return NULL;
+	}
 
 	fp = fopen(filename, "r");
 	if (fp == NULL)
 		return NULL;
 
-	self = malloc(sizeof(*self));
-	if (self) {
-		self->node = node;
-		self->trace = fp;
-		memset(self->linebuf, 0, sizeof(self->linebuf));
-	}
-	else
-		fclose(fp);
+	self->node = node;
+	self->trace = fp;
+	memset(self->linebuf, 0, sizeof(self->linebuf));
 
 	return self;
 }
@@ -49,7 +48,6 @@ void ioapp_exit(struct ioapp *self)
 	if (self) {
 		if (self->trace)
 			fclose(self->trace);
-		free(self);
 	}
 }
 

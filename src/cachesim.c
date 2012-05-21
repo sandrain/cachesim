@@ -61,11 +61,20 @@ static struct cachesim_config _cachesim_config;
 static pthread_mutex_t __pfs_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_barrier_t barrier;
 
+/**
+ * NOTE: About the simulation threads
+ * The simulation runs num_comnodes threads, which means that no thread is
+ * created for the pfs node. Only one pfs node can be simulated and it is
+ * simulated by calling the pfs functions inside each comnode thread. The
+ * sychronization is done by using pthread_mutex. Only a single pfs node
+ * instance is globally defined and used.
+ */
 static pthread_t *threads;
-static struct node **node_data;
-#if 0
+static struct node **node_data;	/** holds the comnode data */
+static struct node __pfs_node;	/** the only pfs node */
+static struct node *pfs_node;
 static char *memptr;
-#endif
+
 
 static struct cachesim_config *read_configuration(char *config_file)
 {
@@ -73,7 +82,7 @@ static struct cachesim_config *read_configuration(char *config_file)
 	__u64 *netgrid;
 	struct cachesim_config *config = &_cachesim_config;
 
-	config->nodes = _num_comnodes + 1;
+	config->nodes = _num_comnodes;
 	config->block_size = _block_size;
 	config->ram_wear = _ram_wear;
 	config->ssd_wear = _ssd_wear;
@@ -116,13 +125,18 @@ static struct cachesim_config *read_configuration(char *config_file)
 
 static int cachesim_prepare(struct cachesim_config *config)
 {
-#if 0
-	__u32 i, pos;
+	__u32 i, pos, node;
 	int devcount, devcount_com, devcount_pfs;
 	size_t memsize;
 	struct storage *storage;
 	struct cache *cache;
 	struct ioapp *app;
+
+	struct storage *ram = NULL;
+	struct storage *ssd = NULL;
+	struct storage *hdd = NULL;
+	struct local_cache *lcache = NULL;
+	struct ioapp *lapp = NULL;
 
 	/** allocate memory space.. it's kind of painful :-( */
 	storage = cache = app = NULL;
@@ -148,7 +162,66 @@ static int cachesim_prepare(struct cachesim_config *config)
 	cache = (struct cache *) &node_data[config->nodes + 1];
 	storage = (struct storage *) &cache[config->nodes + 1];
 	app = (struct ioapp *) &storage[devcount];
-#endif
+
+	/** initialize computing nodes */
+	for (i = 0; i < config->nodes; i++) {
+		node = i + 1;
+		ram = storage_init_ram(&storage[pos++], node,
+				config->comnode_ram_size);
+		if (!ram)
+			return -errno;
+		if (config->comnode_ssd_size) {
+			ssd = storage_init_ssd(&storage[pos++], node,
+						config->comnode_ssd_size);
+			if (!ssd)
+				return -errno;
+		}
+		if (config->comnode_hdd_size) {
+			hdd = storage_init_hdd(&storage[pos++], node,
+						config->comnode_hdd_size);
+			if (!hdd)
+				return -errno;
+		}
+
+		/** TODO: cache instance, the interface should be modified! */
+
+		lapp = ioapp_init(&app[i], node, config->trace_file);
+		if (!lapp)
+			return -errno;
+
+		node_data[i] = node_init_compute(node_data[i], node, lapp,
+						lcache, ram, ssd, hdd);
+		if (!node_data[i])
+			return -errno;
+	}
+
+	/** initialize the pfs node */
+	node = 0;
+	ram = storage_init_ram(&storage[pos++], node,
+				config->pfsnode_ram_size);
+	if (!ram)
+		return -errno;
+	if (config->pfsnode_ssd_size) {
+		ssd = storage_init_ssd(&storage[pos++], node,
+				config->pfsnode_ssd_size);
+		if (!ssd)
+			return -errno;
+	}
+	if (config->pfsnode_hdd_size) {
+		hdd = storage_init_hdd(&storage[pos++], node,
+				config->pfsnode_hdd_size);
+		if (!hdd)
+			return -errno;
+	}
+
+	lcache = NULL;	/** TODO: should be modified!! */
+
+	pfs_node = node_init_pfs(&__pfs_node, ram, ssd, hdd, lcache);
+	if (!pfs_node)
+		return -errno;
+
+	return 0;
+
 
 	/** TODO: this initialization process should be re-written!! the order
 	 * of allocation is not correct; the cleanup() function cannot clean
@@ -159,7 +232,7 @@ static int cachesim_prepare(struct cachesim_config *config)
 	 * malloc(). then the interfaces of all modules also should be
 	 * rewritten!
 	 */
-
+#if 0
 	__u32 i;
 	__u64 block_size;
 	struct node_data *cnode;
@@ -168,13 +241,12 @@ static int cachesim_prepare(struct cachesim_config *config)
 	struct cache *ccache;
 	struct storage *devs[3];
 
+	node_data = malloc(sizeof(struct node *) * config->nodes);
+	if (!node_data)
+		return -ENOMEM;
 
-	/** initialize the rest */
+	/** initialize the computing nodes */
 	for (i = 0; i < config->nodes; i++) {
-		node_data = malloc(sizeof(struct node *) * config->nodes);
-		if (!node_data)
-			return -ENOMEM;
-
 		memset(node_data, 0, sizeof(struct node *) * config->nodes);
 
 		block_size = config->block_size;
@@ -203,14 +275,6 @@ static int cachesim_prepare(struct cachesim_config *config)
 
 		ccache = local_cache_init(0, CACHE_POLICY_RANDOM, 3, devs);
 
-		if (i == 0) {	/** pfs node doesn't need the ioapp */
-			cnode = node_init_pfs(cram, cssd, chdd, ccache);
-			if (cnode)
-				return -ENOMEM;
-			node_data[i] = cnode;
-			continue;
-		}
-
 		capp = ioapp_init(i, config->trace_file);
 		if (!capp)
 			return -ENOMEM;
@@ -222,6 +286,7 @@ static int cachesim_prepare(struct cachesim_config *config)
 	}
 
 	return 0;
+#endif
 }
 
 void *thread_main(void *arg)
@@ -300,9 +365,8 @@ int main(int argc, char **argv)
 		goto out;
 	}
 
-	if (cachesim_prepare(cachesim_config) < 0) {
+	if ((res = cachesim_prepare(cachesim_config)) < 0) {
 		perror("Failed to setup the simulation");
-		res = errno;
 		goto out;
 	}
 

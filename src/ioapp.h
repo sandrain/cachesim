@@ -26,7 +26,7 @@ struct ioapp {
 	char linebuf[64];
 };
 
-struct ioapp *ioapp_init(__u32 node, char *filename);
+struct ioapp *ioapp_init(struct ioapp *self, __u32 node, char *filename);
 
 void ioapp_exit(struct ioapp *self);
 
