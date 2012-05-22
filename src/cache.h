@@ -75,9 +75,11 @@ enum {
 
 extern struct local_cache_ops none_cache_ops;
 extern struct local_cache_ops random_cache_ops;
+#if 0
 extern struct local_cache_ops fifo_cache_ops;
 extern struct local_cache_ops lru_cache_ops;
 extern struct local_cache_ops mru_cache_ops;
+#endif
 
 #endif	/** __CACHE_H__ */
 
