@@ -76,18 +76,23 @@ static void replace_block(struct local_cache *cache, __u64 frame, __u64 block,
 {
 	struct rand_data *self = (struct rand_data *) cache->private;
 	struct cache_meta *binfo = &self->block_info[frame];
+	struct io_request req;
 
 	if (binfo->block != BLOCK_INVALID) {
 		if (binfo->dirty) {	/** we have to sync the block */
-			struct io_request req;
-
-			req.offset = block;
+			req.offset = binfo->block;
 			req.len = 1;
-			req.type = dirty ? IOREQ_TYPE_WRITE : IOREQ_TYPE_READ;
+			req.type = IOREQ_TYPE_WRITE;
 
 			local_cache_sync_block(cache, &req);
 		}
 	}
+
+	req.offset = block;
+	req.len = 1;
+	req.type = IOREQ_TYPE_READ;
+
+	local_cache_fetch_block(cache, &req);
 
 	binfo->dirty = dirty;
 	binfo->block = block;

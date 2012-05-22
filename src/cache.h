@@ -48,6 +48,8 @@ int local_cache_sync_block(struct local_cache *self, struct io_request *req)
 		return storage_rw_block(self->local->hdd, req);
 }
 
+#define	local_cache_fetch_block		local_cache_sync_block
+
 /**
  * Each cache algorithm should implement the following methods.
  * @init is called at the final step of the local_cache_init().
