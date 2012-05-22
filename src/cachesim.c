@@ -54,7 +54,7 @@ static __u64 _comnode_hdd_size = 0;
 
 static __u64 _pfsnode_ram_size = 8 * GB;
 static __u64 _pfsnode_ssd_size = 0;
-static __u64 _pfsnode_hdd_size = 16 * TB;
+static __u64 _pfsnode_hdd_size = 1;
 
 static __u64 _netcost_local = 5;
 static __u64 _netcost_pfs = 5;
