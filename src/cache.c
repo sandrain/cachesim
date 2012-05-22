@@ -16,6 +16,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  * 
  */
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -86,6 +87,12 @@ int local_cache_rw_block(struct local_cache *self, struct io_request *req)
 	return res;
 }
 
+void local_cache_dump(struct local_cache *self, FILE *fp)
+{
+	if (self && self->ops && self->ops->dump)
+		self->ops->dump(self, fp);
+}
+
 static int none_init(struct local_cache *self)
 {
 	return 0;
@@ -93,6 +100,7 @@ static int none_init(struct local_cache *self)
 
 static void none_exit(struct local_cache *self)
 {
+	return;
 }
 
 static int none_rw_block(struct local_cache *self, struct io_request *req)
@@ -100,10 +108,16 @@ static int none_rw_block(struct local_cache *self, struct io_request *req)
 	return local_cache_sync_block(self, req);
 }
 
+static void none_dump(struct local_cache *self, FILE *fp)
+{
+	return;
+}
+
 struct local_cache_ops none_cache_ops = {
 	.init		= &none_init,
 	.exit		= &none_exit,
 	.read_block	= &none_rw_block,
 	.write_block	= &none_rw_block,
+	.dump		= &none_dump,
 };
 

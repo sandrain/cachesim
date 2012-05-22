@@ -1,6 +1,7 @@
 #ifndef	__CACHE_H__
 #define	__CACHE_H__
 
+#include <stdio.h>
 #include "cachesim.h"
 
 struct local_cache_ops;
@@ -48,6 +49,8 @@ int local_cache_sync_block(struct local_cache *self, struct io_request *req)
 		return storage_rw_block(self->local->hdd, req);
 }
 
+void local_cache_dump(struct local_cache *self, FILE *fp);
+
 #define	local_cache_fetch_block		local_cache_sync_block
 
 /**
@@ -56,12 +59,15 @@ int local_cache_sync_block(struct local_cache *self, struct io_request *req)
  * @exit is called at the first step of the local_cache_exit().
  * @read_block and @write_block are called inside the local_cache_rw_block
  * function.
+ * @dump is called after finishing the simulation. this function should emit
+ * the final state of the cache to the given stream @fp.
  */
 struct local_cache_ops {
 	int (*init) (struct local_cache *self);
 	void (*exit) (struct local_cache *self);
 	int (*read_block) (struct local_cache *self, struct io_request *req);
 	int (*write_block) (struct local_cache *self, struct io_request *req);
+	void (*dump) (struct local_cache *self, FILE *fp);
 };
 
 enum {

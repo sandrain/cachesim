@@ -353,10 +353,27 @@ static int cachesim_prepare(struct cachesim_config *config)
 	return 0;
 }
 
+static void print_node_result(struct node *node)
+{
+	struct node_statistics stat;
+
+	node_get_statistics(node, &stat);
+
+	pfs_lock();
+
+	print_statistics(cachesim_config->output, &stat);
+	fputs("cache status --------------------------------\n",
+		cachesim_config->output);
+	local_cache_dump(node->cache, cachesim_config->output);
+	fputs("---------------------------------------------\n",
+		cachesim_config->output);
+
+	pfs_unlock();
+}
+
 void *thread_main(void *arg)
 {
 	int res = 0;
-	struct node_statistics stat;
 	struct node *node = (struct node *) arg;
 
 	res = node_service_ioapp(node);
@@ -364,12 +381,8 @@ void *thread_main(void *arg)
 		/** node_service_ioapp always returns 0 at this moment. */
 	}
 
-	node_get_statistics(node, &stat);
 	pthread_barrier_wait(&barrier);
-
-	pfs_lock();
-	print_statistics(stdout, &stat);
-	pfs_unlock();
+	print_node_result(node);
 
 	return (void *) 0;
 }
@@ -476,12 +489,8 @@ out_thread:
 
 	pthread_barrier_destroy(&barrier);
 
-	if (!res) {	/** print the statistics of the pfs node */
-		struct node_statistics stat;
-
-		node_get_statistics(pfs_node, &stat);
-		print_statistics(stdout, &stat);
-	}
+	if (!res)	/** print the statistics of the pfs node */
+		print_node_result(pfs_node);
 out:
 	cleanup();
 	return res;
