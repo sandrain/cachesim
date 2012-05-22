@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include <getopt.h>
 #include <pthread.h>
 #include <linux/types.h>
@@ -29,6 +30,8 @@
 #define MB	((__u64) 1 << 20)
 #define GB	((__u64) 1 << 30)
 #define TB	((__u64) 1 << 40)
+
+#define	DEFAULT_TRACE_FILE	"trace/OLTP.lis"
 
 /**
  * default config values
@@ -59,7 +62,7 @@ static __u64 _netcost_pfs = 5;
 static int _comnode_cache_policy = CACHE_POLICY_RANDOM;
 static int _pfsnode_cache_policy = CACHE_POLICY_RANDOM;
 
-static char *trace_file = "trace/OLTP.lis";
+static char *_trace_file;
 
 static struct cachesim_config __cachesim_config;
 static pthread_mutex_t __pfs_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -82,11 +85,116 @@ static struct node __pfs_node;	/** the only pfs node */
 static struct node *pfs_node;
 static char *memptr;
 
+enum { OPT_STR = 0, OPT_U32, OPT_U64 };
+
+struct config_options {
+	char *opstr;
+	int optype;
+	void *opval;
+};
+
+static struct config_options options[] = {
+	{ "ram_wear", OPT_U32, &_ram_wear },
+	{ "ssd_wear", OPT_U32, &_ssd_wear },
+	{ "hdd_wear", OPT_U32, &_hdd_wear },
+	{ "trace_file", OPT_STR, &_trace_file },
+	{ "block_size", OPT_U64, &_block_size },
+	{ "ram_latency_read", OPT_U64, &_ram_latency_read },
+	{ "ram_latency_write", OPT_U64, &_ram_latency_write },
+	{ "ssd_latency_read", OPT_U64, &_ssd_latency_read },
+	{ "ssd_latency_write", OPT_U64, &_ssd_latency_write },
+	{ "hdd_latency_read", OPT_U64, &_hdd_latency_read },
+	{ "hdd_latency_write", OPT_U64, &_hdd_latency_write },
+	{ "num_comnodes", OPT_U64, &_num_comnodes },
+	{ "comnode_ram_size", OPT_U64, &_comnode_ram_size },
+	{ "comnode_ssd_size", OPT_U64, &_comnode_ssd_size },
+	{ "comnode_hdd_size", OPT_U64, &_comnode_hdd_size },
+	{ "pfsnode_ram_size", OPT_U64, &_pfsnode_ram_size },
+	{ "pfsnode_ssd_size", OPT_U64, &_pfsnode_ssd_size },
+	{ "pfsnode_hdd_size", OPT_U64, &_pfsnode_hdd_size },
+	{ "netcost_local", OPT_U64, &_netcost_local },
+	{ "netcost_pfs", OPT_U64, &_netcost_pfs }
+};
+static int option_len = sizeof(options) / sizeof(struct config_options);
+static char linebuf[256];
+
+/**
+ * read_configuration: reads and parses the configuration file.
+ *
+ * @config_file: the path to the configuration file.
+ *
+ * returns the cachesim_config, which is filled.
+ */
 static struct cachesim_config *read_configuration(char *config_file)
 {
-	__u32 i;
+	__u32 i, lcount = 0;
 	__u64 *netgrid;
+	FILE *fp;
+	char *token;
 	struct cachesim_config *config = &__cachesim_config;
+
+	/** read from the given configuration file. */
+	if ((fp = fopen(config_file, "r")) == NULL) {
+		perror("Failed to open the configuration file");
+		return NULL;
+	}
+
+	while (fgets(linebuf, 255, fp) != NULL) {
+		lcount++;
+
+		if (linebuf[0] == '#' || isspace(linebuf[0]))
+			continue;
+
+		token = strtok(linebuf, " \t\n=");
+
+		for (i = 0; i < option_len; i++) {
+			if (!strcmp(options[i].opstr, token)) {
+				struct config_options *current = &options[i];
+				void *val = current->opval;
+
+				token = strtok(NULL, " \t=");
+				if (!token) {
+					fprintf(stderr,
+						"Failed to parse line: %u\n",
+						lcount);
+					config = NULL;
+					goto out;
+				}
+
+				switch (current->optype) {
+				case OPT_STR:
+					*((char **) val) = strdup(token);
+					break;
+				case OPT_U32:
+					*((__u32 *) val) = (__u32) atol(token);
+					break;
+				case OPT_U64:
+					*((__u64 *) val) = (__u64) atoll(token);
+					break;
+				default:
+					fprintf(stderr,
+						"Failed to parse line: %u\n",
+						lcount);
+					config = NULL;
+					goto out;
+				}
+
+				break;
+			}
+		}
+
+		if (i == option_len) {
+			fprintf(stderr, "Unknown option %s at line %d\n",
+					token, lcount);
+			config = NULL;
+			goto out;
+		}
+	}
+	if (ferror(fp)) {
+		perror("Error while reading the configuration file");
+		config = NULL;
+		goto out;
+	}
 
 	config->nodes = _num_comnodes;
 	config->block_size = _block_size;
@@ -107,13 +215,17 @@ static struct cachesim_config *read_configuration(char *config_file)
 	config->hdd_latency_write = _hdd_latency_write;
 	config->comnode_cache_policy = _comnode_cache_policy;
 	config->pfsnode_cache_policy = _pfsnode_cache_policy;
-	config->trace_file = strdup(trace_file);
 
-	/** TODO: here should come the reading configuration file.. */
+	if (!config->trace_file)
+		config->trace_file = DEFAULT_TRACE_FILE;
+			     
 
 	netgrid = malloc(sizeof(__u64) * config->nodes * config->nodes * 2);
-	if (!netgrid)
-		return NULL;
+	if (!netgrid) {
+		perror("Failed to allocate memory");
+		config = NULL;
+		goto out;
+	}
 
 	config->network_cost = netgrid;
 	config->network_access = &netgrid[config->nodes * config->nodes];
@@ -128,6 +240,8 @@ static struct cachesim_config *read_configuration(char *config_file)
 	for (i = 0; i < config->nodes * config->nodes; i += config->nodes)
 		config->network_cost[i] = _netcost_pfs;
 
+out:
+	fclose(fp);
 	return config;
 }
 
