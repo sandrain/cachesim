@@ -57,11 +57,15 @@ int node_service_ioapp(struct node *self)
 	int res = 0;
 	struct io_request req;
 
-	res = ioapp_next_request(self->app, &req);
-	if (res == IOREQ_TYPE_EOF)
-		return res;
+	while (1) {
+		res = ioapp_next_request(self->app, &req);
+		if (res == IOREQ_TYPE_EOF)
+			break;
 
-	return local_cache_rw_block(self->cache, &req);
+		local_cache_rw_block(self->cache, &req);
+	}
+
+	return 0;
 }
 
 int node_pfs_rw_block(struct node *self, struct io_request *req)

@@ -156,6 +156,7 @@ static int cachesim_prepare(struct cachesim_config *config)
 	devcount = devcount_pfs + devcount_com * config->nodes;
 
 	memsize = (sizeof(pthread_t) + sizeof(struct node))* config->nodes;
+	memsize += sizeof(struct node *) * config->nodes;
 	memsize += sizeof(struct local_cache) * (config->nodes + 1);
 	memsize += sizeof(struct storage) * devcount;
 	memsize += sizeof(struct ioapp) * config->nodes;
@@ -166,7 +167,7 @@ static int cachesim_prepare(struct cachesim_config *config)
 	threads = (pthread_t *) memptr;
 	node_data = (struct node **) &threads[config->nodes];
 	nodes = (struct node *) &node_data[config->nodes];
-	cache = (struct local_cache *) &node_data[config->nodes + 1];
+	cache = (struct local_cache *) &nodes[config->nodes];
 	storage = (struct storage *) &cache[config->nodes + 1];
 	app = (struct ioapp *) &storage[devcount];
 
@@ -306,12 +307,9 @@ void *thread_main(void *arg)
 	struct node_statistics stat;
 	struct node *node = (struct node *) arg;
 
-	do {
-		res = node_service_ioapp(node);
-	} while (res != IOREQ_TYPE_EOF);
+	res = node_service_ioapp(node);
 
 	node_get_statistics(node, &stat);
-
 	pthread_barrier_wait(&barrier);
 
 	pfs_lock();
