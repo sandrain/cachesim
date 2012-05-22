@@ -43,7 +43,7 @@ static __u64 _ssd_latency_write = 20;
 static __u64 _hdd_latency_read = 100;
 static __u64 _hdd_latency_write = 100;
 
-static __u32 _num_comnodes = 1;
+static __u32 _num_comnodes = 5;
 static __u64 _comnode_ram_size = 2 * GB;
 static __u64 _comnode_ssd_size = 0;
 static __u64 _comnode_hdd_size = 0;

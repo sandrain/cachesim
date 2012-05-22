@@ -88,6 +88,7 @@ static void replace_block(struct local_cache *cache, __u64 frame, __u64 block,
 		}
 	}
 
+	/** fetch the requested block from the disk/pfs */
 	req.offset = block;
 	req.len = 1;
 	req.type = IOREQ_TYPE_READ;
@@ -148,6 +149,7 @@ static int random_rw_block(struct local_cache *cache, struct io_request *req)
 	int res = 0;
 	int dirty = req->type == IOREQ_TYPE_WRITE ? 1 : 0;
 	struct rand_data *self = (struct rand_data *) cache->private;
+	struct io_request tmp;
 
 	for (i = 0; i < req->len; i++) {
 		current = req->offset + i;
@@ -156,23 +158,26 @@ static int random_rw_block(struct local_cache *cache, struct io_request *req)
 			res++;
 			frame = get_free_frame(self);
 			replace_block(cache, frame, current, dirty);
+
+			tmp.type = IOREQ_TYPE_WRITE;
 		}
 		else {
-			struct io_request tmp;
-
 			cache->stat_hits++;
 			self->block_info[i].dirty = dirty;
 
-			tmp.type = req->type;
-			tmp.offset = current;
-			tmp.len = 1;
-			storage_rw_block(cache->local->ram, &tmp);
+			tmp.type = IOREQ_TYPE_READ;
 		}
+
+		/** in case of both hit and miss, we have to access to the ram
+		 * to read or write a block from it. */
+		tmp.offset = current;
+		tmp.len = 1;
+		storage_rw_block(cache->local->ram, &tmp);
 	}
 
 	cache->stat_misses += res;
 
-	return 0;
+	return res;
 }
 
 struct local_cache_ops random_cache_ops = {
