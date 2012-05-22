@@ -33,8 +33,8 @@ static inline void print_statistics(FILE *fp, struct node_statistics *stat)
 #include "config.h"
 #include "ioapp.h"
 #include "storage.h"
-#include "cache.h"
 #include "node.h"
+#include "cache.h"
 
 #endif	/** __CACHESIM_H__ */
 

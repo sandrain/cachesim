@@ -85,7 +85,7 @@ static void replace_block(struct local_cache *cache, __u64 frame, __u64 block,
 			req.len = 1;
 			req.type = dirty ? IOREQ_TYPE_WRITE : IOREQ_TYPE_READ;
 
-			node_pfs_rw_block(cache->pfs, &req);
+			local_cache_sync_block(cache, &req);
 		}
 	}
 

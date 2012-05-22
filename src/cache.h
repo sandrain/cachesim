@@ -41,6 +41,15 @@ static inline void local_cache_exit(struct local_cache *self) {}
 
 int local_cache_rw_block(struct local_cache *self, struct io_request *req);
 
+static inline
+int local_cache_sync_block(struct local_cache *self, struct io_request *req)
+{
+	if (self->pfs)	/** send request to the pfs */
+		return node_pfs_rw_block(self->pfs, req);
+	else		/** send request to local hdd */
+		return storage_rw_block(self->local->hdd, req);
+}
+
 /**
  * Each cache algorithm should implement the following methods.
  * @init is called at the final step of the local_cache_init().
