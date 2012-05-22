@@ -86,6 +86,8 @@ static void replace_block(struct local_cache *cache, __u64 frame, __u64 block,
 
 			local_cache_sync_block(cache, &req);
 		}
+
+		cache->stat_replacements++;
 	}
 
 	/** fetch the requested block from the disk/pfs */
