@@ -25,6 +25,7 @@
 
 #include "cachesim.h"
 
+#define	KB	((__u64) 1 << 10)
 #define MB	((__u64) 1 << 20)
 #define GB	((__u64) 1 << 30)
 #define TB	((__u64) 1 << 40)
@@ -233,72 +234,6 @@ static int cachesim_prepare(struct cachesim_config *config)
 	node_set_local_cache(pfs_node, lcache);
 
 	return 0;
-
-
-	/** TODO: this initialization process should be re-written!! the order
-	 * of allocation is not correct; the cleanup() function cannot clean
-	 * the garbages in case of failure. well, it's not a big deal since
-	 * anyway we terminate the program in case of failure of this function.
-	 * but it should be rewritten!!
-	 * i personally prefer the above comment-outed method to the frequent
-	 * malloc(). then the interfaces of all modules also should be
-	 * rewritten!
-	 */
-#if 0
-	__u32 i;
-	__u64 block_size;
-	struct node_data *cnode;
-	struct ioapp *capp;
-	struct storage *cram, *cssd, *cdisk;
-	struct cache *ccache;
-	struct storage *devs[3];
-
-	node_data = malloc(sizeof(struct node *) * config->nodes);
-	if (!node_data)
-		return -ENOMEM;
-
-	/** initialize the computing nodes */
-	for (i = 0; i < config->nodes; i++) {
-		memset(node_data, 0, sizeof(struct node *) * config->nodes);
-
-		block_size = config->block_size;
-
-		/** initialize pfs node first */
-		cram = storage_init_ram(i, block_size,
-					config->pfsnode_ram_size / block_size);
-		if (!cram)
-			return -ENOMEM;
-		if (config->pfsnode_ssd_size) {
-			cssd = storage_init_ssd(i, block_size,
-					config->pfsnode_ssd_size / block_size);
-			if (!cssd)
-				return -ENOMEM;
-		}
-		if (config->pfsnode_hdd_size) {
-			chdd = storage_init_hdd(i, block_size,
-					config->pfsnode_hdd_size / block_size);
-			if (!chdd)
-				return -ENOMEM;
-		}
-
-		devs[CACHEDEV_RAM] = cram;
-		devs[CACHEDEV_SSD] = cssd;
-		devs[CACHEDEV_HDD] = chdd;
-
-		ccache = local_cache_init(0, CACHE_POLICY_RANDOM, 3, devs);
-
-		capp = ioapp_init(i, config->trace_file);
-		if (!capp)
-			return -ENOMEM;
-
-		cnode = node_init_compute(i, capp, ccache, cram, cssd, chdd);
-		if (!cnode)
-			return -ENOMEM;
-		node_data[i] = cnode;
-	}
-
-	return 0;
-#endif
 }
 
 void *thread_main(void *arg)
