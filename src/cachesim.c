@@ -58,7 +58,7 @@ static __u64 _netcost_pfs = 5;
 static int _comnode_cache_policy = CACHE_POLICY_RANDOM;
 static int _pfsnode_cache_policy = CACHE_POLICY_RANDOM;
 
-static char *trace_file = "test.trace";
+static char *trace_file = "trace/OLTP.lis";
 
 static struct cachesim_config __cachesim_config;
 static pthread_mutex_t __pfs_mutex = PTHREAD_MUTEX_INITIALIZER;
