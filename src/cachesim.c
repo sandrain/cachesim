@@ -303,11 +303,14 @@ static int cachesim_prepare(struct cachesim_config *config)
 
 void *thread_main(void *arg)
 {
-	int res;
+	int res = 0;
 	struct node_statistics stat;
 	struct node *node = (struct node *) arg;
 
 	res = node_service_ioapp(node);
+	if (res) {
+		/** node_service_ioapp always returns 0 at this moment. */
+	}
 
 	node_get_statistics(node, &stat);
 	pthread_barrier_wait(&barrier);

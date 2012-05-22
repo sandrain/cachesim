@@ -4,7 +4,8 @@
 
 CC	= gcc
 CFLAGS	= -ggdb -O0 -Wall
-LDFLAGS	= -lpthread
+#LDFLAGS	= -lpthread
+LDFLAGS	= -pthread
 
 TARGET	= cachesim
 OBJS	= cachesim.o ioapp.o node.o storage.o cache.o cache_random.o
