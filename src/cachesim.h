@@ -28,6 +28,22 @@ struct node_statistics {
 
 static inline void print_statistics(FILE *fp, struct node_statistics *stat)
 {
+	fprintf(fp,	"\n[node %u]"
+			"\nram_reads = %llu"
+			"\nram_writes = %llu"
+			"\nssd_reads = %llu"
+			"\nssd_writes = %llu"
+			"\nhdd_reads = %llu"
+			"\nhdd_writes = %llu"
+			"\ncache_hits = %llu"
+			"\ncache_misses = %llu"
+			"\ncache_replacements = %llu\n",
+			stat->id,
+			stat->ram_reads, stat->ram_writes,
+			stat->ssd_reads, stat->ssd_writes,
+			stat->hdd_reads, stat->hdd_writes,
+			stat->cache_hits, stat->cache_misses,
+			stat->cache_replacements);
 }
 
 #include "config.h"

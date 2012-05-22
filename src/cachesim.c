@@ -385,6 +385,15 @@ int main(int argc, char **argv)
 out_thread:
 	while (i--)
 		pthread_join(threads[i], (void **) NULL);
+
+	pthread_barrier_destroy(&barrier);
+
+	if (!res) {	/** print the statistics of the pfs node */
+		struct node_statistics stat;
+
+		node_get_statistics(pfs_node, &stat);
+		print_statistics(stdout, &stat);
+	}
 out:
 	cleanup();
 	return res;

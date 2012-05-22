@@ -86,6 +86,8 @@ void node_get_statistics(struct node *self, struct node_statistics *stat)
 
 	memset(stat, 0, sizeof(*stat));
 
+	stat->id = self->id;
+
 	if (self->ram) {
 		stat->ram_reads = self->ram->stat_reads;
 		stat->ram_writes = self->ram->stat_writes;

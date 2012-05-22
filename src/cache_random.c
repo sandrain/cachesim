@@ -153,8 +153,15 @@ static int random_rw_block(struct local_cache *cache, struct io_request *req)
 			replace_block(cache, frame, current, dirty);
 		}
 		else {
+			struct io_request tmp;
+
 			cache->stat_hits++;
 			self->block_info[i].dirty = dirty;
+
+			tmp.type = req->type;
+			tmp.offset = current;
+			tmp.len = 1;
+			storage_rw_block(cache->local->ram, &tmp);
 		}
 	}
 
