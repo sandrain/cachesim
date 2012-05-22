@@ -105,7 +105,7 @@ static int random_init(struct local_cache *cache)
 	struct node *local = cache->local;
 	struct rand_data *data = NULL;
 
-	block_count = local->ram->capacity / cachesim_config->block_size;
+	block_count = local->ram->block_count;
 
 	data = malloc(sizeof(struct rand_data) +
 			sizeof(struct cache_meta) * block_count);

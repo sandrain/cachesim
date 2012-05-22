@@ -1,6 +1,7 @@
 #ifndef	__CONFIG_H__
 #define	__CONFIG_H__
 
+#include <stdio.h>
 #include <pthread.h>
 #include <linux/types.h>
 
@@ -34,6 +35,7 @@ struct cachesim_config {
 	__u64 *network_access;
 
 	char *trace_file;
+	FILE *output;
 };
 
 extern struct cachesim_config *cachesim_config;

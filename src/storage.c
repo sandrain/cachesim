@@ -19,12 +19,10 @@
 #include <stdlib.h>
 #include "cachesim.h"
 
-struct storage *storage_init(struct storage *self, __u32 node, __u64 capacity,
-			__u32 latency_read, __u32 latency_write, int wear,
-			struct storage_operations *ops)
+struct storage *storage_init(struct storage *self, __u32 node, __u64
+			block_count, __u32 latency_read, __u32 latency_write,
+			int wear, struct storage_operations *ops)
 {
-	__u64 block_count = capacity / cachesim_config->block_size;
-
 	if (!self) {
 		errno = EINVAL;
 		return NULL;
@@ -37,7 +35,7 @@ struct storage *storage_init(struct storage *self, __u32 node, __u64 capacity,
 	}
 
 	self->node = node;
-	self->capacity = capacity;
+	self->block_count = block_count;
 	self->latency_read = latency_read;
 	self->latency_write = latency_write;
 	self->stat_reads = self->stat_writes = 0;

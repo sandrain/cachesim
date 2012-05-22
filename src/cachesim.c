@@ -118,6 +118,9 @@ static struct config_options options[] = {
 static int option_len = sizeof(options) / sizeof(struct config_options);
 static char linebuf[256];
 
+static char *config_file;
+static char *output_file;
+
 /**
  * read_configuration: reads and parses the configuration file.
  *
@@ -152,7 +155,7 @@ static struct cachesim_config *read_configuration(char *config_file)
 				struct config_options *current = &options[i];
 				void *val = current->opval;
 
-				token = strtok(NULL, " \t=");
+				token = strtok(NULL, " \t\n=");
 				if (!token) {
 					fprintf(stderr,
 						"Failed to parse line: %u\n",
@@ -215,10 +218,10 @@ static struct cachesim_config *read_configuration(char *config_file)
 	config->hdd_latency_write = _hdd_latency_write;
 	config->comnode_cache_policy = _comnode_cache_policy;
 	config->pfsnode_cache_policy = _pfsnode_cache_policy;
+	config->trace_file = _trace_file;
 
 	if (!config->trace_file)
 		config->trace_file = DEFAULT_TRACE_FILE;
-			     
 
 	netgrid = malloc(sizeof(__u64) * config->nodes * config->nodes * 2);
 	if (!netgrid) {
@@ -397,13 +400,18 @@ static void cleanup(void)
 		free(memptr);
 	}
 
-	if (cachesim_config->network_cost)
+	if (cachesim_config && cachesim_config->network_cost)
 		free(cachesim_config->network_cost);
 }
 
-static void print_usage(const char *exe)
+static const char *usage_string = 
+"\nUsage: cachesim [-o output_file] [-f config_file]\n"
+"\n  If you don't specify any options, cachesim will use cachesim.conf"
+"\n  as a default configuration file and print the output to stdout.\n\n";
+
+static inline void print_usage(const char *exe)
 {
-	printf(	"\nUsage: %s <configuration file>\n\n", exe);
+	fputs(usage_string, stderr);
 }
 
 /**
@@ -411,20 +419,41 @@ static void print_usage(const char *exe)
  */
 int main(int argc, char **argv)
 {
+	int opt;
 	int res = 0;
 	__u32 i;
+	FILE *outfp = NULL;
 
-	if (argc != 2) {
-		print_usage(argv[0]);
-		return 0;
+	while ((opt = getopt(argc, argv, "ho:f:")) != -1) {
+		switch (opt) {
+		case 'o': output_file = optarg; break;
+		case 'f': config_file = optarg; break;
+		case 'h':
+		default: print_usage(argv[0]);
+			 return 0;
+		}
 	}
 
-	cachesim_config = read_configuration(argv[1]);
+	if (!config_file)
+		config_file = "cachesim.conf";
+
+	if (output_file) {
+		outfp = fopen(output_file, "w");
+		if (!outfp) {
+			perror("Failed to open the output file");
+			return -errno;
+		}
+	}
+	else
+		outfp = stdout;
+
+	cachesim_config = read_configuration(config_file);
 	if (!cachesim_config) {
-		perror("Failed to read configuration");
 		res = errno;
 		goto out;
 	}
+
+	cachesim_config->output = outfp;
 
 	if ((res = cachesim_prepare(cachesim_config)) < 0) {
 		perror("Failed to setup the simulation");
