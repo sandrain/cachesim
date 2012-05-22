@@ -55,6 +55,9 @@ static __u64 _pfsnode_hdd_size = 16 * TB;
 static __u64 _netcost_local = 5;
 static __u64 _netcost_pfs = 5;
 
+static int _comnode_cache_policy = CACHE_POLICY_RANDOM;
+static int _pfsnode_cache_policy = CACHE_POLICY_RANDOM;
+
 static char *trace_file = "test.trace";
 
 static struct cachesim_config __cachesim_config;
@@ -101,6 +104,8 @@ static struct cachesim_config *read_configuration(char *config_file)
 	config->ssd_latency_write = _ssd_latency_write;
 	config->hdd_latency_read = _hdd_latency_read;
 	config->hdd_latency_write = _hdd_latency_write;
+	config->comnode_cache_policy = _comnode_cache_policy;
+	config->pfsnode_cache_policy = _pfsnode_cache_policy;
 	config->trace_file = strdup(trace_file);
 
 	/** TODO: here should come the reading configuration file.. */
@@ -185,16 +190,18 @@ static int cachesim_prepare(struct cachesim_config *config)
 				return -errno;
 		}
 
-		/** TODO: cache instance, the interface should be modified! */
-
 		lapp = ioapp_init(&app[i], node, config->trace_file);
 		if (!lapp)
 			return -errno;
 
 		node_data[i] = node_init_compute(&nodes[i], node, lapp,
-						lcache, ram, ssd, hdd);
+						ram, ssd, hdd);
 		if (!node_data[i])
 			return -errno;
+
+		lcache = local_cache_init(&cache[i], _comnode_cache_policy,
+					node_data[i], &__pfs_node);
+		node_set_local_cache(node_data[i], lcache);
 	}
 
 	/** initialize the pfs node */
@@ -216,11 +223,13 @@ static int cachesim_prepare(struct cachesim_config *config)
 			return -errno;
 	}
 
-	lcache = NULL;	/** TODO: should be modified!! */
-
-	pfs_node = node_init_pfs(&__pfs_node, ram, ssd, hdd, lcache);
+	pfs_node = node_init_pfs(&__pfs_node, ram, ssd, hdd);
 	if (!pfs_node)
 		return -errno;
+
+	lcache = local_cache_init(&cache[i], _pfsnode_cache_policy,
+				pfs_node, NULL);
+	node_set_local_cache(pfs_node, lcache);
 
 	return 0;
 

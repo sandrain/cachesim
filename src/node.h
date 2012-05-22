@@ -29,27 +29,32 @@ extern struct node_operations compute_node_operations;
 extern struct node_operations pfs_node_operations;
 
 struct node *node_init(struct node *self,
-		__u32 id, struct ioapp *app, struct local_cache *cache,
+		__u32 id, struct ioapp *app,
 		struct storage *ram, struct storage *ssd, struct storage *hdd,
 		struct node_operations *ops, void *private);
 
 static inline void node_exit(struct node *self) {}
 
 static inline
+void node_set_local_cache(struct node *self, struct local_cache *cache)
+{
+	self->cache = cache;
+}
+
+static inline
 struct node *node_init_compute(struct node *self,
-		__u32 id, struct ioapp *app, struct local_cache *cache,
+		__u32 id, struct ioapp *app,
 		struct storage *ram, struct storage *ssd, struct storage *hdd)
 {
-	return node_init(self, id, app, cache, ram, ssd, hdd,
+	return node_init(self, id, app, ram, ssd, hdd,
 			&compute_node_operations, NULL);
 }
 
 static inline
 struct node *node_init_pfs(struct node *self,
-		struct storage *ram, struct storage *ssd,
-		struct storage *hdd, struct local_cache *cache)
+		struct storage *ram, struct storage *ssd, struct storage *hdd)
 {
-	return node_init(self, 0, NULL, cache, ram, ssd, hdd,
+	return node_init(self, 0, NULL, ram, ssd, hdd,
 			&pfs_node_operations, NULL);
 }
 

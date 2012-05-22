@@ -22,7 +22,7 @@
 #include "cachesim.h"
 
 struct node *node_init(struct node *self,
-		__u32 id, struct ioapp *app, struct local_cache *cache,
+		__u32 id, struct ioapp *app,
 		struct storage *ram, struct storage *ssd, struct storage *hdd,
 		struct node_operations *ops, void *private)
 {
@@ -43,7 +43,6 @@ struct node *node_init(struct node *self,
 
 	self->id = id;
 	self->app = app;
-	self->cache = cache;
 	self->ram = ram;
 	self->ssd = ssd;
 	self->hdd = hdd;

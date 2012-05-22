@@ -12,6 +12,9 @@ struct cachesim_config {
 	int ssd_wear;
 	int hdd_wear;
 
+	int comnode_cache_policy;
+	int pfsnode_cache_policy;
+
 	__u64 comnode_ram_size;
 	__u64 comnode_ssd_size;
 	__u64 comnode_hdd_size;

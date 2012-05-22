@@ -21,10 +21,8 @@
 
 #include "cachesim.h"
 
-struct local_cache *local_cache_init(struct local_cache *self,
-				__u32 node, int policy,
-				struct node *local, struct node *pfs,
-				struct local_cache_ops *ops, void *data)
+struct local_cache *local_cache_init(struct local_cache *self, int policy,
+				struct node *local, struct node *pfs)
 {
 	if (!self) {
 		errno = EINVAL;
@@ -38,14 +36,34 @@ struct local_cache *local_cache_init(struct local_cache *self,
 
 	memset(self, 0, sizeof(*self));
 
-	self->node = node;
+	self->node = local->id;
 	self->policy = policy;
-	self->private = data;
-	self->ops = ops;
 	self->local = local;
 	self->pfs = pfs;
 
+	switch (policy) {
+	case CACHE_POLICY_RANDOM:
+		self->ops = &random_cache_ops;
+		break;
+	case CACHE_POLICY_FIFO:
+	case CACHE_POLICY_LRU:
+	case CACHE_POLICY_MRU:
+	default:
+		self->ops = &none_cache_ops;
+		break;
+	}
+
+	if (self->ops->init)
+		if (self->ops->init(self) != 0)
+			return NULL;
+
 	return self;
+}
+
+void local_cache_exit(struct local_cache *self)
+{
+	if (self && self->ops && self->ops->exit)
+		self->ops->exit(self);
 }
 
 int local_cache_rw_block(struct local_cache *self, struct io_request *req)
@@ -53,8 +71,6 @@ int local_cache_rw_block(struct local_cache *self, struct io_request *req)
 	int res = 0;
 
 	dump_io_request(stderr, req);
-
-	return 1;
 
 	switch (req->type) {
 	case IOREQ_TYPE_ANY:
@@ -71,4 +87,25 @@ int local_cache_rw_block(struct local_cache *self, struct io_request *req)
 
 	return res;
 }
+
+static int none_init(struct local_cache *self)
+{
+	return 0;
+}
+
+static void none_exit(struct local_cache *self)
+{
+}
+
+static int none_rw_block(struct local_cache *self, struct io_request *req)
+{
+	return local_cache_sync_block(self, req);
+}
+
+struct local_cache_ops none_cache_ops = {
+	.init		= &none_init,
+	.exit		= &none_exit,
+	.read_block	= &none_rw_block,
+	.write_block	= &none_rw_block,
+};
 

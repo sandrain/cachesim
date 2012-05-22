@@ -32,12 +32,10 @@ struct local_cache {
 	struct local_cache_ops *ops;
 };
 
-struct local_cache *local_cache_init(struct local_cache *self,
-				__u32 node, int policy,
-				struct node *local, struct node *pfs,
-				struct local_cache_ops *ops, void *data);
+struct local_cache *local_cache_init(struct local_cache *self, int policy,
+				struct node *local, struct node *pfs);
 
-static inline void local_cache_exit(struct local_cache *self) {}
+void local_cache_exit(struct local_cache *self);
 
 int local_cache_rw_block(struct local_cache *self, struct io_request *req);
 
@@ -65,13 +63,15 @@ struct local_cache_ops {
 };
 
 enum {
-	CACHE_POLICY_RANDOM = 0,
+	CACHE_POLICY_NONE = 0,
+	CACHE_POLICY_RANDOM,
 	CACHE_POLICY_FIFO,
 	CACHE_POLICY_LRU,
 	CACHE_POLICY_MRU,
 	N_CACHE_POLICIES
 };
 
+extern struct local_cache_ops none_cache_ops;
 extern struct local_cache_ops random_cache_ops;
 extern struct local_cache_ops fifo_cache_ops;
 extern struct local_cache_ops lru_cache_ops;
