@@ -42,6 +42,10 @@ struct local_cache *local_cache_init(struct local_cache *self, int policy,
 	self->local = local;
 	self->pfs = pfs;
 
+	/**
+	 * FIXME: isn't there any other way which doesn't require to modify
+	 * this code when adding a new cache algorithm??
+	 */
 	switch (policy) {
 	case CACHE_POLICY_RANDOM:
 		self->ops = &random_cache_ops;
@@ -99,6 +103,11 @@ void local_cache_dump(struct local_cache *self, FILE *fp)
 		self->ops->dump(self, fp);
 }
 
+/**
+ * An example implementation of the cache algorithm. This algorithm redirects
+ * all the requests to the stable storage and can be useful to simulate the
+ * situation without cache.
+ */
 static int none_init(struct local_cache *self)
 {
 	return 0;

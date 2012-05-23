@@ -1,3 +1,21 @@
+/* Copyright (C) Hyogi Sim <hyogi@cs.vt.edu>
+ * 
+ * ---------------------------------------------------------------------------
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * 
+ */
 #ifndef	__CACHE_UTIL_H__
 #define	__CACHE_UTIL_H__
 
@@ -5,6 +23,10 @@
 
 enum { BLOCK_CLEAN = 0, BLOCK_DIRTY = 1 };
 
+/**
+ * This structure can be used to keep the general metadata for cached blocks.
+ * All the members can be freely used by algorithm itself.
+ */
 struct cache_meta {
 	int dirty;
 	__u64 block;
@@ -16,6 +38,13 @@ struct cache_meta {
 	void *private;
 };
 
+/**
+ * init_cache_entry initializes all the fields in given cache_meta instance. If
+ * you want to keep the members related to maintaining a list as they are, use
+ * init_cache_entry_list() instead.
+ *
+ * @entry cache_meta instance.
+ */
 static inline
 void init_cache_entry(struct cache_meta *entry)
 {
@@ -27,6 +56,12 @@ void init_cache_entry(struct cache_meta *entry)
 	entry->private = NULL;
 }
 
+/**
+ * init_cache_entry_list works same as init_cache_entry but this keeps the list
+ * related members as they are.
+ *
+ * @entry cache_meta instance.
+ */
 static inline
 void init_cache_entry_list(struct cache_meta *entry)
 {
@@ -36,6 +71,14 @@ void init_cache_entry_list(struct cache_meta *entry)
 	entry->private = NULL;
 }
 
+/**
+ * generic_cache_entry_dump prints @binfo structure to the output stream
+ * specified by @fp.
+ *
+ * @pos: the frame number.
+ * @binfo: cache_meta instance.
+ * @fp: output stream.
+ */
 static inline
 void generic_cache_entry_dump(__u64 pos, struct cache_meta *binfo, FILE *fp)
 {
@@ -43,6 +86,13 @@ void generic_cache_entry_dump(__u64 pos, struct cache_meta *binfo, FILE *fp)
 			pos, binfo->dirty, binfo->block, binfo->seq);
 }
 
+/**
+ * generic_cache_dump prints @binfo array to the output stream @fp.
+ *
+ * @binfo: the pointer to array of cache_meta instances.
+ * @count: the number of instances in @binfo array
+ * @fp: output stream.
+ */
 static inline
 void generic_cache_dump(struct cache_meta *binfo, __u64 count, FILE *fp)
 {
