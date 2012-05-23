@@ -12,5 +12,17 @@ struct cache_meta {
 	void *private;
 };
 
+static inline
+void generic_cache_dump(struct cache_meta *binfo, __u64 count, FILE *fp)
+{
+	__u64 i;
+
+	for (i = 0; i < count; i++) {
+		struct cache_meta *current = &binfo[i];
+		fprintf(fp, "[%5llu] %d, %llu, %llu\n",
+			i, current->dirty, current->block, current->seq);
+	}
+}
+
 #endif	/** __CACHE_UTIL_H__ */
 
