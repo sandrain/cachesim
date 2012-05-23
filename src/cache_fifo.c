@@ -65,9 +65,35 @@ static void fifo_exit(struct local_cache *cache)
 
 static int fifo_rw_block(struct local_cache *cache, struct io_request req)
 {
+	int res = 0;
 	struct fifo_data *fifo = (struct fifo_data *) cache->private;
+	struct io_request tmp;
+	__u64 i, pos;
 
+	for (i = 0; i < req->len; i++) {
+		__u64 current = req->offset + i;
+		if ((pos = search_block(fifo, current)) == BLOCK_INVALID) {
+			res++;
+			pos = next_pos(fifo);
+			replace_block(cache, pos, current, dirty);
 
+			tmp.type = IOREQ_TYPE_WRITE;
+		}
+		else {	/** cache hit */
+			cache->stat_hits++;
+			fifo->block_info[pos].dirty = dirty;
+
+			tmp.type = IOREQ_TYPE_READ;
+		}
+
+		tmp.offset = pos;
+		tmp.len = 1;
+		storage_rw_block(cache->local->ram, &tmp);
+	}
+
+	cache->stat_misses += res;
+
+	return res;
 }
 
 static void fifo_dump(struct local_cache *cache, FILE *fp)
