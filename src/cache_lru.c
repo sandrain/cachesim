@@ -31,6 +31,62 @@ struct lru_data {
 	struct cache_meta block_info[0];
 };
 
+static inline void move_to_mru(struct lru_data *self, __u64 index)
+{
+}
+
+static inline void insert_mru(struct lru_data *self, __u64 index)
+{
+}
+
+static inline __u64 get_lru(struct lru_data *self)
+{
+}
+
+static inline __u64 get_mru(struct lru_data *self)
+{
+}
+
+static int lru_init(struct local_cache *cache)
+{
+	__u64 i;
+	__u64 block_count = cache->local->ram->block_count;
+	struct lru_data *self = NULL;
+
+	self = malloc(sizeof(lru_data)
+			+ sizeof(struct cache_meta) * block_count);
+	if (!self)
+		return -ENOMEM;
+
+	self->block_count = block_count;
+	self->lru = NULL;
+	self->mru = NULL;
+
+	for (i = 0; i < block_count; i++)
+		init_cache_entry(&self->block_info[i]);
+
+	cache->private = self;
+	return 0;
+}
+
+static void lru_exit(struct local_cache *cache)
+{
+	if (cache && cache->private)
+		free(cache->private);
+}
+
+static int lru_rw_block(struct local_cache *cache, struct io_request *req)
+{
+}
+
+static void lru_dump(struct local_cache *cache, FILE *fp)
+{
+}
+
+static int mru_rw_block(struct local_cache *cache, struct io_request *req)
+{
+}
+
 struct local_cache_ops lru_cache_ops = {
 	.init		= &lru_init,
 	.exit		= &lru_exit,
@@ -38,22 +94,6 @@ struct local_cache_ops lru_cache_ops = {
 	.write_block	= &lru_rw_block,
 	.dump		= &lru_dump,
 };
-
-static int lru_init(struct local_cache *cache)
-{
-}
-
-static void lru_exit(struct local_cache *cache)
-{
-}
-
-static struct lru_rw_block(struct local_cache *cache, struct io_request *req)
-{
-}
-
-static void lru_dump(struct local_cache *cache, FILE *fp)
-{
-}
 
 struct local_cache_ops mru_cache_ops = {
 	.init		= &lru_init,
