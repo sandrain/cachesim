@@ -40,12 +40,12 @@ struct lru_data {
 static inline void move_to_mru(struct lru_data *self, __u64 pos)
 {
 	struct cache_meta *entry = &self->block_info[pos];
-	struct cache_meta *tmp = self->mru;
+	struct cache_meta *mru = self->mru;
 
-	if (tmp == entry)
+	if (entry == mru)
 		return;
 
-	if (!tmp) {	/** the list is empty */
+	if (!mru) {	/** the list is empty */
 		self->mru = entry;
 		self->lru = entry;
 		entry->next = NULL;
@@ -53,14 +53,17 @@ static inline void move_to_mru(struct lru_data *self, __u64 pos)
 		return;
 	}
 
+	if (entry == self->lru)
+		self->lru = entry->prev;
+
 	if (entry->prev)
 		entry->prev->next = entry->next;
 	if (entry->next)
 		entry->next->prev = entry->prev;
 
 	entry->prev = NULL;
-	entry->next = tmp;
-	tmp->prev = entry;
+	entry->next = mru;
+	mru->prev = entry;
 
 	self->mru = entry;
 }
