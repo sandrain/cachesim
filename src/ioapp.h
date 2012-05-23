@@ -11,14 +11,18 @@ enum {
 	IOREQ_TYPE_ANY	/** for ARC trace files */
 };
 
+/**
+ * io_request represents block io requests.
+ */
 struct io_request {
-	__u32 node;
-	__u64 offset;
-	__u64 len;
-	__u64 sequence;
-	int type;
+	__u32 node;		/* node id which generates this request */
+	__u64 offset;		/* starting block offset */
+	__u64 len;		/* number of blocks in this request */
+	__u64 sequence;		/* the sequence of this request */
+	int type;		/* read or write */
 };
 
+/** dump_io_request, for debugging. */
 static inline
 void dump_io_request(FILE *fp, struct io_request *req)
 {
@@ -26,17 +30,43 @@ void dump_io_request(FILE *fp, struct io_request *req)
 			req->node, req->offset, req->len);
 }
 
+/**
+ * io_app simulates an application which generates block io requests.
+ */
 struct ioapp {
-	__u32 node;
-	FILE *trace;
+	__u32 node;		/* node where this lives */
+	FILE *trace;		/* input stream of trace file */
 
-	char linebuf[64];
+	char linebuf[64];	/* internally used buffer */
 };
 
+/**
+ * ioapp_init initializes an ioapp instance. @self should be allocated by the
+ * caller.
+ *
+ * @self: memory space to be used.
+ * @node: node id for this application.
+ * @filename: trace file path.
+ *
+ * returns newly initiated ioapp instance. NULL on failure.
+ */
 struct ioapp *ioapp_init(struct ioapp *self, __u32 node, char *filename);
 
+/**
+ * ioapp_exit de-initializes the ioapp instance.
+ *
+ * @self: ioapp instance.
+ */
 void ioapp_exit(struct ioapp *self);
 
+/**
+ * ioapp_next_request fetches block io requests one by one.
+ *
+ * @self: ioapp instance.
+ * @req: [out] next io request.
+ *
+ * returns request type of fetched request (0, 1, or 2). <0 on error.
+ */
 int ioapp_next_request(struct ioapp *self, struct io_request *req);
 
 #endif	/** __IOAPP_H__ */
