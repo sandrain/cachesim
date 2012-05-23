@@ -112,6 +112,8 @@ static struct config_options options[] = {
 	{ "pfsnode_ram_size", OPT_U64, &_pfsnode_ram_size },
 	{ "pfsnode_ssd_size", OPT_U64, &_pfsnode_ssd_size },
 	{ "pfsnode_hdd_size", OPT_U64, &_pfsnode_hdd_size },
+	{ "comnode_cache_policy", OPT_U32, &_comnode_cache_policy },
+	{ "pfsnode_cache_policy", OPT_U32, &_pfsnode_cache_policy },
 	{ "netcost_local", OPT_U64, &_netcost_local },
 	{ "netcost_pfs", OPT_U64, &_netcost_pfs }
 };

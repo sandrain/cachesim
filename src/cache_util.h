@@ -13,6 +13,15 @@ struct cache_meta {
 };
 
 static inline
+void init_cache_entry(struct cache_meta *entry)
+{
+	entry->dirty = BLOCK_CLEAN;
+	entry->block = BLOCK_INVALID;
+	entry->seq = 0;
+	entry->private = NULL;
+}
+
+static inline
 void generic_cache_dump(struct cache_meta *binfo, __u64 count, FILE *fp)
 {
 	__u64 i;

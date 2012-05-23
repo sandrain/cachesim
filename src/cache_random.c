@@ -185,11 +185,9 @@ static int random_rw_block(struct local_cache *cache, struct io_request *req)
 
 static void random_dump(struct local_cache *cache, FILE *fp)
 {
-	__u64 count = cache->local->ram->block_count;
 	struct rand_data *self = (struct rand_data *) cache->private;
-	struct cache_meta *binfo = self->block_info;
 
-	generic_cache_dump(binfo, count, fp);
+	generic_cache_dump(self->block_info, self->block_count, fp);
 }
 
 struct local_cache_ops random_cache_ops = {

@@ -8,7 +8,8 @@ CFLAGS	= -ggdb -O0 -Wall
 LDFLAGS	= -pthread
 
 TARGET	= cachesim
-OBJS	= cachesim.o ioapp.o node.o storage.o cache.o cache_random.o
+OBJS	= cachesim.o ioapp.o node.o storage.o cache.o cache_random.o \
+	  cache_fifo.o
 
 $(TARGET): $(OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
