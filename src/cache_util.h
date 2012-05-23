@@ -9,6 +9,10 @@ struct cache_meta {
 	int dirty;
 	__u64 block;
 	__u64 seq;
+
+	struct cache_meta *next;
+	struct cache_meta *prev;
+
 	void *private;
 };
 
@@ -18,6 +22,8 @@ void init_cache_entry(struct cache_meta *entry)
 	entry->dirty = BLOCK_CLEAN;
 	entry->block = BLOCK_INVALID;
 	entry->seq = 0;
+	entry->next = NULL;
+	entry->prev = NULL;
 	entry->private = NULL;
 }
 

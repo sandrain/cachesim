@@ -26,7 +26,8 @@ struct node_statistics {
 	__u64 cache_replacements;
 };
 
-static inline void print_statistics(FILE *fp, struct node_statistics *stat)
+static inline
+void print_statistics(FILE *fp, struct node_statistics *stat)
 {
 	fprintf(fp,	"\n[node %u]"
 			"\nram_reads = %llu"
