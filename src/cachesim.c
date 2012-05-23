@@ -364,13 +364,11 @@ static void print_node_result(struct node *node)
 	pfs_lock();
 
 	print_statistics(cachesim_config->output, &stat);
-#if 0
 	fputs("cache status --------------------------------\n",
 		cachesim_config->output);
 	local_cache_dump(node->cache, cachesim_config->output);
 	fputs("---------------------------------------------\n",
 		cachesim_config->output);
-#endif
 
 	pfs_unlock();
 }
