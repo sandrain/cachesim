@@ -70,10 +70,15 @@ int node_service_ioapp(struct node *self)
 
 int node_pfs_rw_block(struct node *self, struct io_request *req)
 {
+	int res = 0;
 	if (!self || !req)
 		return -EINVAL;
 
-	return local_cache_rw_block(self->cache, req);
+	pfs_lock();
+	res = local_cache_rw_block(self->cache, req);
+	pfs_unlock();
+
+	return res;
 }
 
 void node_get_statistics(struct node *self, struct node_statistics *stat)
