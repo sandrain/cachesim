@@ -140,7 +140,7 @@ static int fifo_rw_block(struct local_cache *cache, struct io_request *req)
 			binfo = &fifo->block_info[pos];
 			binfo->block = current;
 			if (req->type == IOREQ_TYPE_WRITE)
-				fifo->block_info[pos].dirty = BLOCK_DIRTY;
+				binfo->dirty = BLOCK_DIRTY;
 
 			binfo->seq = fifo->seq++;
 

@@ -28,15 +28,28 @@ void init_cache_entry(struct cache_meta *entry)
 }
 
 static inline
+void init_cache_entry_list(struct cache_meta *entry)
+{
+	entry->dirty = BLOCK_CLEAN;
+	entry->block = BLOCK_INVALID;
+	entry->seq = 0;
+	entry->private = NULL;
+}
+
+static inline
+void generic_cache_entry_dump(__u64 pos, struct cache_meta *binfo, FILE *fp)
+{
+	fprintf(fp, "[%5llu] %d, %llu, %llu\n",
+			pos, binfo->dirty, binfo->block, binfo->seq);
+}
+
+static inline
 void generic_cache_dump(struct cache_meta *binfo, __u64 count, FILE *fp)
 {
 	__u64 i;
 
-	for (i = 0; i < count; i++) {
-		struct cache_meta *current = &binfo[i];
-		fprintf(fp, "[%5llu] %d, %llu, %llu\n",
-			i, current->dirty, current->block, current->seq);
-	}
+	for (i = 0; i < count; i++)
+		generic_cache_entry_dump(i, &binfo[i], fp);
 }
 
 #endif	/** __CACHE_UTIL_H__ */
