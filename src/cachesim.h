@@ -25,6 +25,9 @@
 
 extern int errno;
 
+/**
+ * This structure represents the statistics of a node.
+ */
 struct node_statistics {
 	__u32 id;
 
@@ -44,6 +47,12 @@ struct node_statistics {
 	__u64 cache_replacements;
 };
 
+/**
+ * print_statistics prints the statistic to the given output stream.
+ *
+ * @fp: the output stream.
+ * @stat: node_statistics instance.
+ */
 static inline
 void print_statistics(FILE *fp, struct node_statistics *stat)
 {
@@ -65,6 +74,7 @@ void print_statistics(FILE *fp, struct node_statistics *stat)
 			stat->cache_replacements);
 }
 
+/** FIXME: i don't like this style of inclusion */
 #include "config.h"
 #include "ioapp.h"
 #include "storage.h"

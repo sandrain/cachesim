@@ -27,36 +27,36 @@
  * cachesim_config holds the configurations of the simulation.
  */
 struct cachesim_config {
-	__u32 nodes;
-	__u32 block_size;
+	__u32 nodes;			/* number of computing nodes */
+	__u32 block_size;		/* block size */
 
-	int ram_wear;
+	int ram_wear;			/* wear information flags */
 	int ssd_wear;
 	int hdd_wear;
 
-	int comnode_cache_policy;
-	int pfsnode_cache_policy;
+	int comnode_cache_policy;	/* cache policy for computing nodes */
+	int pfsnode_cache_policy;	/* cache policy for the pfs node */
 
-	__u64 comnode_ram_size;
+	__u64 comnode_ram_size;		/* storage device size for nodes */
 	__u64 comnode_ssd_size;
 	__u64 comnode_hdd_size;
 
-	__u64 pfsnode_ram_size;
+	__u64 pfsnode_ram_size;		/* storage device size for pfs node */
 	__u64 pfsnode_ssd_size;
 	__u64 pfsnode_hdd_size;
 
-	__u64 ram_latency_read;
+	__u64 ram_latency_read;		/* latency of storage devices */
 	__u64 ram_latency_write;
 	__u64 ssd_latency_read;
 	__u64 ssd_latency_write;
 	__u64 hdd_latency_read;
 	__u64 hdd_latency_write;
 
-	__u64 *network_cost;
+	__u64 *network_cost;		/* network access cost */
 	__u64 *network_access;
 
-	char *trace_file;
-	FILE *output;
+	char *trace_file;		/* trace file */
+	FILE *output;			/* output stream */
 };
 
 /**
