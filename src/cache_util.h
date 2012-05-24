@@ -32,18 +32,19 @@ enum { BLOCK_CLEAN = 0, BLOCK_DIRTY = 1 };
 
 /**
  * This structure can be used to keep the general metadata for cached blocks.
- * All the members can be freely used by algorithm itself.
+ * Although this defines some common attributes, all of them can be freely used
+ * by your algorithm.
  */
 struct cache_meta {
-	int dirty;
-	__u64 index;
-	__u64 block;
-	__u64 seq;
+	int dirty;		/* clean(0) or dirty(1)?? */
+	__u64 index;		/* the index of the array */
+	__u64 block;		/* physical block number */
+	__u64 seq;		/* the request sequence */
 
-	struct cache_meta *next;
+	struct cache_meta *next;	/* list elements */
 	struct cache_meta *prev;
 
-	void *private;
+	void *private;		/* any other data you want */
 };
 
 /**
@@ -113,7 +114,7 @@ void generic_cache_dump(struct cache_meta *binfo, __u64 count, FILE *fp)
 }
 
 /**
- * cache_meta doubly linked list implementation.
+ * cache_meta doubly linked list implementation. It's not a circular list.
  */
 
 struct cache_meta_list {
@@ -183,7 +184,6 @@ void cache_meta_list_insert_tail(struct cache_meta_list *list,
 	if (!list->head) {
 		list->head = list->tail = element;
 		element->next = element->prev = NULL;
-		return;
 	}
 	else {
 		element->prev = list->tail;
@@ -287,6 +287,47 @@ struct cache_meta *cache_meta_list_remove_tail(struct cache_meta_list *list)
 	list->size--;
 
 	return res;
+}
+
+/**
+ * cache_meta_list_remove removes element in an arbtrary position in the list.
+ *
+ * @list: list instance
+ * @element: the pointer to the element which is to be removed.
+ *
+ * returns the pointer to the removed element, NULL on errors.
+ */
+static inline
+struct cache_meta *cache_meta_list_remove(struct cache_meta_list *list,
+					struct cache_meta *element)
+{
+	if (!list || !element)
+		return NULL;
+
+	if (list->head == element && list->tail == element) {
+		list->head = list->tail = NULL;
+		list->size = 0;
+
+		return element;
+	}
+
+	if (!element->prev && !element->next)
+		return NULL;	/* maybe not in the list */
+
+	if (element->prev)
+		element->prev->next = element->next;
+	else
+		list->head = element->next;
+
+	if (element->next)
+		element->next->prev = element->prev;
+	else
+		list->tail = element->prev;
+
+	element->next = element->prev = NULL;
+	list->size--;
+
+	return element;
 }
 
 #endif	/** __CACHE_UTIL_H__ */

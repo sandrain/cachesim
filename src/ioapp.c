@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 #include "ioapp.h"
 
@@ -73,7 +74,7 @@ int ioapp_next_request(struct ioapp *self, struct io_request *req)
 			return -EBADF;
 		}
 
-		if (line[0] == '#')
+		if (line[0] == '#' || isspace(line[0]))
 			continue;
 
 		if (sscanf(line, "%llu %llu %c %llu",

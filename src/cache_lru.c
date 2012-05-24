@@ -31,8 +31,7 @@ struct lru_data {
 	__u64 seq;
 	__u64 alloc_seq;
 
-	struct cache_meta *lru;
-	struct cache_meta *mru;
+	struct cache_meta_list list;	/* head: mru, tail: lru */
 
 	struct cache_meta block_info[0];
 };
@@ -40,48 +39,34 @@ struct lru_data {
 static inline void move_to_mru(struct lru_data *self, __u64 pos)
 {
 	struct cache_meta *entry = &self->block_info[pos];
-	struct cache_meta *mru = self->mru;
+	struct cache_meta_list *list = &self->list;
 
-	if (entry == mru)
-		return;
+	entry = cache_meta_list_remove(list, entry);
+	if (entry)
+		cache_meta_list_insert_head(list, entry);
+}
 
-	if (!mru) {	/** the list is empty */
-		self->mru = entry;
-		self->lru = entry;
-		entry->next = NULL;
-		entry->prev = NULL;
-		return;
-	}
+static inline void add_to_mru(struct lru_data *self, __u64 pos)
+{
+	struct cache_meta *entry = &self->block_info[pos];
 
-	if (entry == self->lru)
-		self->lru = entry->prev;
-
-	if (entry->prev)
-		entry->prev->next = entry->next;
-	if (entry->next)
-		entry->next->prev = entry->prev;
-
-	entry->prev = NULL;
-	entry->next = mru;
-	mru->prev = entry;
-
-	self->mru = entry;
+	cache_meta_list_insert_head(&self->list, entry);
 }
 
 static inline __u64 get_lru_pos(struct lru_data *self)
 {
-	unsigned long entry = (unsigned long) self->lru;
+	unsigned long entry = (unsigned long) self->list.tail;
 	unsigned long base = (unsigned long) self->block_info;
 
-	return (entry - base) / sizeof(struct cache_meta);
+	return entry ? (entry - base) / sizeof(struct cache_meta) : 0;
 }
 
 static inline __u64 get_mru_pos(struct lru_data *self)
 {
-	unsigned long entry = (unsigned long) self->mru;
+	unsigned long entry = (unsigned long) self->list.head;
 	unsigned long base = (unsigned long) self->block_info;
 
-	return (entry - base) / sizeof(struct cache_meta);
+	return entry ? (entry - base) / sizeof(struct cache_meta) : 0;
 }
 
 static __u64 search_block(struct local_cache *cache, __u64 block)
@@ -113,7 +98,7 @@ static __u64 get_free_block(struct local_cache *cache)
 
 	if (self->alloc_seq < self->block_count) {
 		pos = self->alloc_seq++;
-		move_to_mru(self, pos);
+		add_to_mru(self, pos);
 		return pos;
 	}
 
@@ -151,8 +136,7 @@ static struct lru_data *init_self(struct local_cache *cache, int policy)
 		self->block_count = block_count;
 		self->seq = 0;
 		self->alloc_seq = 0;
-		self->lru = NULL;
-		self->mru = NULL;
+		cache_meta_list_init(&self->list);
 
 		for (i = 0; i < block_count; i++)
 			init_cache_entry(&self->block_info[i]);
@@ -197,6 +181,8 @@ static int lru_rw_block(struct local_cache *cache, struct io_request *req)
 	struct io_request tmp;
 	__u64 i, pos;
 
+	dump_io_request(cachesim_config->output, req);
+
 	for (i = 0; i < req->len; i++) {
 		__u64 current = req->offset + i;
 
@@ -239,7 +225,7 @@ static void lru_dump(struct local_cache *cache, FILE *fp)
 {
 	__u64 pos = 0;
 	struct lru_data *self = (struct lru_data *) cache->private;
-	struct cache_meta *binfo = self->mru;
+	struct cache_meta *binfo = self->list.head;
 
 	fputs("MRU\n", fp);
 
