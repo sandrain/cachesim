@@ -23,9 +23,14 @@
 
 #define	BLOCK_INVALID		((__u64) -1)
 
+#define min(a, b)		((a) < (b) ? (a) : (b))
+#define max(a, b)		((a) > (b) ? (a) : (b))
+
 /** TODO:
  * Generic data structures for cache systems should be implemented. That
  * should include linked list, hash table, and binary min-heap..??
+ *
+ * - linked list implemented.
  */
 
 enum { BLOCK_CLEAN = 0, BLOCK_DIRTY = 1 };
