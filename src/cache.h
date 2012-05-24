@@ -143,7 +143,7 @@ struct local_cache_ops {
 };
 
 /**
- * Newly implemented algorithm should be added here.
+ * Newly implemented algorithms should be added here.
  */
 enum {
 	CACHE_POLICY_NONE = 0,

@@ -21,6 +21,11 @@
 
 #define	BLOCK_INVALID		((__u64) -1)
 
+/** TODO:
+ * Generic data structures for cache systems should be implemented. That
+ * should include linked list, hash table, and binary min-heap..??
+ */
+
 enum { BLOCK_CLEAN = 0, BLOCK_DIRTY = 1 };
 
 /**

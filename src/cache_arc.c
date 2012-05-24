@@ -22,3 +22,6 @@
 #include "cachesim.h"
 #include "cache_util.h"
 
+struct arc_data {
+};
+
