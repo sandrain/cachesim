@@ -19,6 +19,8 @@
 #ifndef	__CACHE_UTIL_H__
 #define	__CACHE_UTIL_H__
 
+#include <linux/types.h>
+
 #define	BLOCK_INVALID		((__u64) -1)
 
 /** TODO:
@@ -34,6 +36,7 @@ enum { BLOCK_CLEAN = 0, BLOCK_DIRTY = 1 };
  */
 struct cache_meta {
 	int dirty;
+	__u64 index;
 	__u64 block;
 	__u64 seq;
 
@@ -53,6 +56,7 @@ struct cache_meta {
 static inline
 void init_cache_entry(struct cache_meta *entry)
 {
+	entry->index = BLOCK_INVALID;
 	entry->dirty = BLOCK_CLEAN;
 	entry->block = BLOCK_INVALID;
 	entry->seq = 0;
@@ -70,6 +74,7 @@ void init_cache_entry(struct cache_meta *entry)
 static inline
 void init_cache_entry_list(struct cache_meta *entry)
 {
+	entry->index = BLOCK_INVALID;
 	entry->dirty = BLOCK_CLEAN;
 	entry->block = BLOCK_INVALID;
 	entry->seq = 0;
@@ -105,6 +110,130 @@ void generic_cache_dump(struct cache_meta *binfo, __u64 count, FILE *fp)
 
 	for (i = 0; i < count; i++)
 		generic_cache_entry_dump(i, &binfo[i], fp);
+}
+
+/**
+ * cache_meta doubly linked list implementation.
+ */
+
+struct cache_meta_list {
+	struct cache_meta *head;
+	struct cache_meta *tail;
+
+	__u64 size;	/* number of elements in the list */
+};
+
+static inline
+void cache_meta_list_init(struct cache_meta_list *list)
+{
+	if (list) {
+		list->head = NULL;
+		list->tail = NULL;
+		list->size = 0;
+	}
+}
+
+static inline
+void cache_meta_list_insert_head(struct cache_meta_list *list,
+					struct cache_meta *element)
+{
+	if (!list)
+		return;
+
+	if (!list->head) {
+		list->head = list->tail = element;
+		element->next = element->prev = NULL;
+	}
+	else {
+		element->prev = NULL;
+		element->next = list->head;
+		list->head->prev = element;
+		list->head = element;
+	}
+
+	list->size++;
+}
+
+static inline
+void cache_meta_list_insert_tail(struct cache_meta_list *list,
+					struct cache_meta *element)
+{
+	if (!list)
+		return;
+
+	if (!list->head) {
+		list->head = list->tail = element;
+		element->next = element->prev = NULL;
+		return;
+	}
+	else {
+		element->prev = list->tail;
+		element->next = NULL;
+		list->tail->next = element;
+		list->tail = element;
+	}
+
+	list->size++;
+}
+
+static inline
+struct cache_meta *cache_meta_list_get_head(struct cache_meta_list *list)
+{
+	return list ? list->head : NULL;
+}
+
+static inline
+struct cache_meta *cache_meta_list_get_tail(struct cache_meta_list *list)
+{
+	return list ? list->tail : NULL;
+}
+
+static inline
+struct cache_meta *cache_meta_list_remove_head(struct cache_meta_list *list)
+{
+	struct cache_meta *res;
+
+	if (!list || !list->head)
+		return NULL;
+
+	res = list->head;
+	if (!res->next) {
+		list->head = list->tail = NULL;
+		list->size = 0;
+		return res;
+	}
+
+	res->next->prev = NULL;
+	list->head = res->next;
+
+	res->next = res->prev = NULL;
+	list->size--;
+
+	return res;
+}
+
+static inline
+struct cache_meta *cache_meta_list_remove_tail(struct cache_meta_list *list)
+{
+	struct cache_meta *res;
+
+	if (!list || !list->head)
+		return NULL;
+
+	res = list->tail;
+	if (!res->prev) {
+		list->head = list->tail = NULL;
+		list->size = 0;
+		return res;
+	}
+
+	res->prev->next = NULL;
+	list->tail = res->prev;
+
+	res->next = res->prev = NULL;
+	list->size--;
+
+	return res;
 }
 
 #endif	/** __CACHE_UTIL_H__ */
