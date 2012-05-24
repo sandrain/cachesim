@@ -28,17 +28,26 @@
 #include "cachesim.h"
 #include "cache_util.h"
 
-struct arc_data {
-	__s64 p;
+/**
+ * arc cache_meta usage (struct cache_meta)
+ * @dirty: clean(0) or dirty(1)?
+ * @index: the index in block_info[0] array.
+ * @block: physical block number.
+ * @seq: the list it belongs to.
+ * @private: pointer to the local_cache structure we belong to.
+ */
 
-	struct cache_meta_list t1;
+struct arc_data {
+	__s64 p;			/* adaptation value */
+
+	struct cache_meta_list t1;	/* L1, recency list */
 	struct cache_meta_list b1;
 
-	struct cache_meta_list t2;
+	struct cache_meta_list t2;	/* L2, frequency list */
 	struct cache_meta_list b2;
 
-	__u64 block_count;
-	struct cache_meta block_info[0];
+	__u64 block_count;		/* cache size */
+	struct cache_meta block_info[0]; /* cache size * 2 (includes ghosts) */
 };
 
 static inline void adaptation_b1(struct arc_data *self)
@@ -61,6 +70,14 @@ static inline void adaptation_b2(struct arc_data *self)
 	self->p = max(delta, 0);
 }
 
+static void replace(struct arc_data *self, struct io_request *req)
+{
+}
+
+static struct cache_meta *search_block(struct arc_data *self)
+{
+}
+
 static int arc_init(struct local_cache *cache)
 {
 	__u64 i;
@@ -78,9 +95,14 @@ static int arc_init(struct local_cache *cache)
 		cache_meta_list_init(&self->t2);
 		cache_meta_list_init(&self->b2);
 
-		for (i = 0; i < block_count; i++)
-			init_cache_entry(&self->block_info[i]);
+		for (i = 0; i < block_count * 2; i++) {
+			struct cache_meta *tmp = &self->block_info[i];
 
+			init_cache_entry(tmp);
+			tmp->index = i;
+		}
+
+		self->private = cache;
 		cache->private = self;
 	}
 	else
@@ -97,6 +119,7 @@ static void arc_exit(struct local_cache *cache)
 
 static int arc_rw_block(struct local_cache *cache, struct io_request *req)
 {
+
 	return 0;
 }
 
