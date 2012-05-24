@@ -257,7 +257,6 @@ struct cache_meta *cache_meta_list_remove_head(struct cache_meta_list *list)
 	return res;
 }
 
-static inline
 /**
  * cache_meta_list_remove_tail removes the tail element from the list and
  * returns it.
@@ -266,6 +265,7 @@ static inline
  *
  * returns the element at the tail of the list, NULL if the list is empty.
  */
+static inline
 struct cache_meta *cache_meta_list_remove_tail(struct cache_meta_list *list)
 {
 	struct cache_meta *res;
