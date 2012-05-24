@@ -123,6 +123,11 @@ struct cache_meta_list {
 	__u64 size;	/* number of elements in the list */
 };
 
+/**
+ * cache_meta_list_init initializes the list structure.
+ *
+ * @list: should be allocated by the caller.
+ */
 static inline
 void cache_meta_list_init(struct cache_meta_list *list)
 {
@@ -133,6 +138,13 @@ void cache_meta_list_init(struct cache_meta_list *list)
 	}
 }
 
+/**
+ * cache_meta_list_insert_head inserts an element at the head of the given
+ * list.
+ *
+ * @list: list instance.
+ * @element: element to be inserted.
+ */
 static inline
 void cache_meta_list_insert_head(struct cache_meta_list *list,
 					struct cache_meta *element)
@@ -154,6 +166,13 @@ void cache_meta_list_insert_head(struct cache_meta_list *list,
 	list->size++;
 }
 
+/**
+ * cache_meta_list_insert_tail inserts an element at the tail of the given
+ * list.
+ *
+ * @list: list instance.
+ * @element: element to be inserted.
+ */
 static inline
 void cache_meta_list_insert_tail(struct cache_meta_list *list,
 					struct cache_meta *element)
@@ -176,18 +195,44 @@ void cache_meta_list_insert_tail(struct cache_meta_list *list,
 	list->size++;
 }
 
+/**
+ * cache_meta_list_get_head passes the pointer to the element at the head of
+ * the list. NOTE that this function doesn't modify the list structure. To
+ * remove the head element, use cache_meta_list_remove_head() instead.
+ *
+ * @list: list instance.
+ *
+ * returns the element at the head of the list, NULL if the list is empty.
+ */
 static inline
 struct cache_meta *cache_meta_list_get_head(struct cache_meta_list *list)
 {
 	return list ? list->head : NULL;
 }
 
+/**
+ * cache_meta_list_get_tail passes the pointer to the element at the tail of
+ * the list. NOTE that this function doesn't modify the list structure. To
+ * remove the tail element, use cache_meta_list_remove_tail() instead.
+ *
+ * @list: list instance.
+ *
+ * returns the element at the tail of the list, NULL if the list is empty.
+ */
 static inline
 struct cache_meta *cache_meta_list_get_tail(struct cache_meta_list *list)
 {
 	return list ? list->tail : NULL;
 }
 
+/**
+ * cache_meta_list_remove_head removes the head element from the list and
+ * returns it.
+ *
+ * @list: list instance
+ *
+ * returns the element at the head of the list, NULL if the list is empty.
+ */
 static inline
 struct cache_meta *cache_meta_list_remove_head(struct cache_meta_list *list)
 {
@@ -213,6 +258,14 @@ struct cache_meta *cache_meta_list_remove_head(struct cache_meta_list *list)
 }
 
 static inline
+/**
+ * cache_meta_list_remove_tail removes the tail element from the list and
+ * returns it.
+ *
+ * @list: list instance
+ *
+ * returns the element at the tail of the list, NULL if the list is empty.
+ */
 struct cache_meta *cache_meta_list_remove_tail(struct cache_meta_list *list)
 {
 	struct cache_meta *res;
