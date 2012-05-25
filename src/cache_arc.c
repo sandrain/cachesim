@@ -123,8 +123,37 @@ static void remove_cache_entry(struct arc_data *self, struct cache_meta *entry)
 {
 }
 
-static void replace(struct arc_data *self, struct io_request *req)
+static void replace(struct arc_data *self, struct cache_meta *entry)
 {
+	struct cache_meta_list *list = NULL;
+	struct cache_meta *victim;
+	struct local_cache *cache = (struct local_cache *) self->private;
+	__u64 sizeT1 = get_list_size(self, T1);
+
+	if (sizeT1 > 0 &&
+		(sizeT1 > self->p || (entry->seq == B2 && sizeT1 == self->p)))
+	{
+		victim = cache_meta_list_remove_tail(get_list(self, T1));
+		victim->seq = B1;
+		cache_meta_list_insert_head(get_list(self, B1), victim);
+	}
+	else {
+		victim = cache_meta_list_remove_tail(get_list(self, T2));
+		victim->seq = B2;
+		cache_meta_list_insert_head(get_list(self, B2), victim);
+	}
+
+	if (victim->dirty) {
+		struct io_request req;
+
+		req.type = IOREQ_TYPE_WRITE;
+		req.offset = victim->block;
+		req.len = 1;
+
+		local_cache_sync_block(cache, &req);
+	}
+
+	cache->stat_replacements++;
 }
 
 static struct cache_meta *search_block(struct arc_data *self, __u64 block)
@@ -186,10 +215,12 @@ static void arc_exit(struct local_cache *cache)
 		free(cache->private);
 }
 
-static int do_arc(struct arc_data *self, __u64 block)
+static int do_arc(struct arc_data *self, __u64 block, int type)
 {
 	int res = 0;
 	__u64 enroll = 0;
+	struct io_request tmp;
+	struct local_cache *cache = (struct local_cache *) self->private;
 	struct cache_meta *entry = search_block(self, block);
 
 	if (entry) {
@@ -210,14 +241,27 @@ static int do_arc(struct arc_data *self, __u64 block)
 			entry->seq = T2;
 			adaptation(self, enroll);
 			replace(self, entry);
+
+			tmp.type = IOREQ_TYPE_READ;
+			tmp.offset = block;
+			tmp.len = 1;
+			local_cache_fetch_block(cache, &tmp);
+
+			entry->seq = T2;
+			cache_meta_list_insert_head(get_list(self, T2), entry);
 			break;
 
-		default: break;
+		default: break;	/* BUG!! */
 		}
 	}
 	else {
 		res++;
 	}
+
+	tmp.type = type;
+	tmp.offset = block;
+	tmp.len = 1;
+	storage_rw_block(cache->local->ram, &tmp);
 
 	return res;
 }
