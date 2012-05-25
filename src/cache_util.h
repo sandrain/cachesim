@@ -118,6 +118,30 @@ void generic_cache_dump(struct cache_meta *binfo, __u64 count, FILE *fp)
 		generic_cache_entry_dump(i, &binfo[i], fp);
 }
 
+static inline
+int cache_sync_block(struct local_cache *self, __u64 block)
+{
+	struct io_request tmp;
+
+	tmp.type = IOREQ_TYPE_WRITE;
+	tmp.offset = block;
+	tmp.len = 1;
+
+	return local_cache_sync_block(self, &tmp);
+}
+
+static inline
+int cache_fetch_block(struct local_cache *self, __u64 block)
+{
+	struct io_request tmp;
+
+	tmp.type = IOREQ_TYPE_READ;
+	tmp.offset = block;
+	tmp.len = 1;
+
+	return local_cache_fetch_block(self, &tmp);
+}
+
 /**
  * cache_meta doubly linked list implementation. It's not a circular list.
  */
