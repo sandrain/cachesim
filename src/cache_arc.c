@@ -108,7 +108,7 @@ static inline void adaptation(struct arc_data *self, __u64 id)
 	}
 }
 
-static inline void add_cache_mru_entry(struct arc_data *self,
+static void add_cache_mru_entry(struct arc_data *self,
 				struct cache_meta *entry, __u64 id)
 {
 	struct cache_meta_list *list = get_list(self, id);
@@ -117,8 +117,8 @@ static inline void add_cache_mru_entry(struct arc_data *self,
 	cache_meta_list_insert_head(list, entry);
 }
 
-static inline 
-struct cache_meta *remove_cache_lru_entry(struct arc_data *self, __u64 id)
+static struct cache_meta *remove_cache_lru_entry(struct arc_data *self,
+						__u64 id)
 {
 	struct cache_meta_list *list = get_list(self, id);
 	struct cache_meta *entry = cache_meta_list_remove_tail(list);
