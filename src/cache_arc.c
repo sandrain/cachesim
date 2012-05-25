@@ -96,13 +96,13 @@ static inline void adaptation(struct arc_data *self, __u64 id)
 
 	switch (id) {
 	case B1:
-		delta = b1 >= b2 ? 1 : b2 / b1;
+		delta = b1 >= b2 ? 1 : (__u64) ((double) b2 / b1);
 		delta += self->p;
 		self->p = min(delta, self->c);
 		break;
 
 	case B2:
-		delta = b2 >= b1 ? 1 : b1 / b2;
+		delta = b2 >= b1 ? 1 : (__u64) ((double) b1 / b2);
 		delta -= self->p;
 		self->p = max(delta, 0);
 		break;
