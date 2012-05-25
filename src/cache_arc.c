@@ -30,7 +30,7 @@
 #include "cachesim.h"
 #include "cache_util.h"
 
-#define	_DEBUG_ARC
+/*#define	_DEBUG_ARC*/
 
 /**
  * arc cache_meta usage (struct cache_meta)
@@ -162,7 +162,8 @@ static struct cache_meta *search_block(struct arc_data *self, __u64 block)
 		entry = &self->block_info[i];
 
 		if (entry->block == block) {
-			self->cache->stat_hits++;
+			if (entry->seq == T1 || entry->seq == T2)
+				self->cache->stat_hits++;
 			return entry;
 		}
 	}
