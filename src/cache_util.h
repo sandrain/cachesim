@@ -142,6 +142,18 @@ int cache_fetch_block(struct local_cache *self, __u64 block)
 	return local_cache_fetch_block(self, &tmp);
 }
 
+static inline
+int cache_rw_cache_dev(struct local_cache *self, __u64 block, int type)
+{
+	struct io_request tmp;
+
+	tmp.type = type;
+	tmp.offset = block;
+	tmp.len = 1;
+
+	return storage_rw_block(self->local->ram, &tmp);
+}
+
 /**
  * cache_meta doubly linked list implementation. It's not a circular list.
  */

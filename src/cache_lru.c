@@ -106,15 +106,8 @@ static __u64 get_free_block(struct local_cache *cache)
 	pos = self->policy == LRU ? get_lru_pos(self) : get_mru_pos(self);
 	binfo = &self->block_info[pos];
 
-	if (binfo->dirty) {
-		struct io_request tmp;
-
-		tmp.type = IOREQ_TYPE_WRITE;
-		tmp.offset = binfo->block;
-		tmp.len = 1;
-
-		local_cache_sync_block(cache, &tmp);
-	}
+	if (binfo->dirty)
+		cache_sync_block(cache, binfo->block);
 
 	move_to_mru(self, pos);
 	init_cache_entry_list(binfo);
@@ -175,10 +168,9 @@ static void lru_exit(struct local_cache *cache)
 
 static int lru_rw_block(struct local_cache *cache, struct io_request *req)
 {
-	int res = 0;
+	int res = 0, type= 0;
 	struct lru_data *self = (struct lru_data *) cache->private;
 	struct cache_meta *binfo;
-	struct io_request tmp;
 	__u64 i, pos;
 
 	dump_io_request(cachesim_config->output, req);
@@ -192,11 +184,7 @@ static int lru_rw_block(struct local_cache *cache, struct io_request *req)
 
 			pos = get_free_block(cache);
 
-			tmp.offset = current;
-			tmp.len = 1;
-			tmp.type = IOREQ_TYPE_READ;
-
-			local_cache_fetch_block(cache, &tmp);
+			cache_fetch_block(cache, current);
 
 			binfo = &self->block_info[pos];
 			binfo->block = current;
@@ -204,18 +192,16 @@ static int lru_rw_block(struct local_cache *cache, struct io_request *req)
 				binfo->dirty = BLOCK_DIRTY;
 			binfo->seq = self->seq++;
 
-			tmp.type = IOREQ_TYPE_WRITE;
+			type = IOREQ_TYPE_WRITE;
 		}
 		else {	/** cache hit */
 			if (req->type == IOREQ_TYPE_WRITE)
 				self->block_info[pos].dirty = BLOCK_DIRTY;
 
-			tmp.type = IOREQ_TYPE_READ;
+			type = IOREQ_TYPE_READ;
 		}
 
-		tmp.offset = pos;
-		tmp.len = 1;
-		storage_rw_block(cache->local->ram, &tmp);
+		cache_rw_cache_dev(cache, pos, type);
 	}
 
 	return res;
