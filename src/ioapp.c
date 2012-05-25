@@ -38,6 +38,7 @@ struct ioapp *ioapp_init(struct ioapp *self, __u32 node, char *filename)
 		return NULL;
 
 	self->node = node;
+	self->sequence = 0;
 	self->trace = fp;
 	memset(self->linebuf, 0, sizeof(self->linebuf));
 
@@ -91,6 +92,7 @@ int ioapp_next_request(struct ioapp *self, struct io_request *req)
 	req->offset = offset;
 	req->len = len;
 	req->node = self->node;
+	req->sequence = ++self->sequence;
 
 	return req->type;
 }

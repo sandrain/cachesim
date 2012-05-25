@@ -30,6 +30,8 @@
 #include "cachesim.h"
 #include "cache_util.h"
 
+#define	_DEBUG_ARC
+
 /**
  * arc cache_meta usage (struct cache_meta)
  * @dirty: clean(0) or dirty(1)?
@@ -45,6 +47,7 @@
 
 struct arc_data {
 	__s64 p;			/* adaptation value */
+	__u64 c;			/* actual cache capacity */
 
 	struct cache_meta_list t1;	/* L1, recency list */
 	struct cache_meta_list b1;
@@ -95,7 +98,7 @@ static inline void adaptation(struct arc_data *self, __u64 id)
 	case B1:
 		delta = b1 >= b2 ? 1 : b2 / b1;
 		delta += self->p;
-		self->p = min(delta, self->block_count);
+		self->p = min(delta, self->c);
 		break;
 
 	case B2:
@@ -177,8 +180,10 @@ static struct cache_meta *get_free_block(struct arc_data *self)
 	for (i = 0; i < self->block_count; i++) {
 		entry = &self->block_info[i];
 
-		if (entry->block == BLOCK_INVALID)
+		if (entry->block == BLOCK_INVALID) {
+			entry->index = i;
 			return entry;
+		}
 	}
 
 	return NULL;	/* this should NOT happen!! */
@@ -194,7 +199,8 @@ static int arc_init(struct local_cache *cache)
 			+ sizeof(struct cache_meta) * block_count * 2);
 	if (self) {
 		self->p = 0;
-		self->block_count = block_count;
+		self->c = block_count;
+		self->block_count = block_count * 2;
 
 		cache_meta_list_init(&self->t1);
 		cache_meta_list_init(&self->b1);
@@ -222,6 +228,8 @@ static void arc_exit(struct local_cache *cache)
 	if (cache && cache->private)
 		free(cache->private);
 }
+
+static void arc_dump(struct local_cache *cache, FILE *fp);
 
 static int do_arc(struct arc_data *self, __u64 block, int type)
 {
@@ -263,11 +271,11 @@ static int do_arc(struct arc_data *self, __u64 block, int type)
 		__u64 sizeB1 = get_list_size(self, B1);
 		__u64 sizeT2 = get_list_size(self, T2);
 		__u64 sizeB2 = get_list_size(self, B2);
-		__u64 c = self->block_count;
+		__u64 c = self->c;
 
 		res++;
 
-		if (sizeT1 + sizeT2 == c) {
+		if (sizeT1 + sizeB1 == c) {
 			if (sizeT1 < c) {
 				entry = remove_cache_lru_entry(self, B1);
 				init_cache_entry(entry);
@@ -297,6 +305,11 @@ static int do_arc(struct arc_data *self, __u64 block, int type)
 		add_cache_mru_entry(self, entry, T1);
 	}
 
+#ifdef _DEBUG_ARC
+	arc_dump(cache, cachesim_config->output);
+	getchar();
+#endif
+
 	return res;
 }
 
@@ -312,8 +325,51 @@ static int arc_rw_block(struct local_cache *cache, struct io_request *req)
 	return res;
 }
 
+
+static inline void dump_list_mru(struct arc_data *self, __u64 id, FILE *fp)
+{
+	struct cache_meta_list *list = get_list(self, id);
+	struct cache_meta *current = list->head;
+
+	while (current) {
+		generic_cache_entry_dump(current->index, current, fp);
+		current = current->next;
+	}
+}
+
+static inline void dump_list_lru(struct arc_data *self, __u64 id, FILE *fp)
+{
+	struct cache_meta_list *list = get_list(self, id);
+	struct cache_meta *current = list->tail;
+
+	while (current) {
+		generic_cache_entry_dump(current->index, current, fp);
+		current = current->prev;
+	}
+}
+
 static void arc_dump(struct local_cache *cache, FILE *fp)
 {
+	struct arc_data *self = (struct arc_data *) cache->private;
+	fprintf(fp,	"ARC cache size = %llu\n"
+			"p = %llu, |L1| = %llu, |L2| = %llu\n\n"
+			"[B2 - LRU (%llu)]\n",
+			self->block_count / 2,
+			self->p,
+			get_list_size(self, T1) + get_list_size(self, B1),
+			get_list_size(self, T2) + get_list_size(self, B2),
+			get_list_size(self, B2));
+	dump_list_lru(self, B2, fp);
+	fprintf(fp,	"[B2 - MRU]\n[T2 - LRU (%llu)]\n",
+			get_list_size(self, T2));
+	dump_list_lru(self, T2, fp);
+	fprintf(fp,	"[T2 - MRU]\n[T1 - MRU (%llu)]\n",
+			get_list_size(self, T1));
+	dump_list_mru(self, T1, fp);
+	fprintf(fp,	"[T1 - LRU]\n[B1 - MRU (%llu)]\n",
+			get_list_size(self, B1));
+	dump_list_mru(self, B1, fp);
+	fprintf(fp,	"[B1 - LRU]\n");
 }
 
 struct local_cache_ops arc_cache_ops = {

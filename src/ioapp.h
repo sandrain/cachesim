@@ -53,6 +53,7 @@ void dump_io_request(FILE *fp, struct io_request *req)
  */
 struct ioapp {
 	__u32 node;		/* node where this lives */
+	__u64 sequence;		/* request sequence */
 	FILE *trace;		/* input stream of trace file */
 
 	char linebuf[64];	/* internally used buffer */
