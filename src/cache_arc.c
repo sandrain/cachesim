@@ -37,6 +37,11 @@
  * @private: pointer to the local_cache structure we belong to.
  */
 
+static const int T1 = 1;
+static const int B2 = 2;
+static const int T2 = 3;
+static const int B2 = 4;
+
 struct arc_data {
 	__s64 p;			/* adaptation value */
 
@@ -50,6 +55,49 @@ struct arc_data {
 	struct cache_meta block_info[0]; /* cache size * 2 (includes ghosts) */
 };
 
+static inline
+struct cache_meta_list *get_list(struct arc_data *self, __u64 id)
+{
+	switch (id) {
+	case T1: return &self->t1;
+	case B1: return &self->b1;
+	case T2: return &self->t2;
+	case B2: return &self->b2;
+	default: NULL;
+	}
+}
+
+static inline
+__u64 get_list_size(struct arc_data *self, __u64 id)
+{
+	struct cache_meta_list *list = get_list(self, id);
+	return list->size;
+}
+
+static inline void adaptation(struct arc_data *self, __u64 id)
+{
+	__u64 b1 = self->b1.size;
+	__u64 b2 = self->b2.size;
+	__s64 delta = 0;
+
+	switch (id) {
+	case B1:
+		delta = b1 >= b2 ? 1 : b2 / b1;
+		delta += self->p;
+		self->p = min(delta, self->block_count);
+		break;
+
+	case B2:
+		delta = b2 >= b1 ? 1 : b1 / b2;
+		delta -= self->p;
+		self->p = max(delta, 0);
+		break;
+
+	default: break;
+	}
+}
+
+#if 0
 static inline void adaptation_b1(struct arc_data *self)
 {
 	__u64 b1 = self->b1.size;
@@ -69,13 +117,34 @@ static inline void adaptation_b2(struct arc_data *self)
 	delta -= self->p;
 	self->p = max(delta, 0);
 }
+#endif
+
+static void remove_cache_entry(struct arc_data *self, struct cache_meta *entry)
+{
+}
 
 static void replace(struct arc_data *self, struct io_request *req)
 {
 }
 
-static struct cache_meta *search_block(struct arc_data *self)
+static struct cache_meta *search_block(struct arc_data *self, __u64 block)
 {
+	__u64 i;
+	struct cache_meta *entry = NULL;
+	struct local_cache *cache = (struct local_cache *) self->private;
+
+	for (i = 0; i < self->block_count; i++) {
+		entry = &self->block_info[i];
+
+		if (entry->block == block) {
+			cache->stat_hits++;
+			return entry;
+		}
+	}
+
+	cache->stat_misses++;
+
+	return NULL;
 }
 
 static int arc_init(struct local_cache *cache)
@@ -117,10 +186,52 @@ static void arc_exit(struct local_cache *cache)
 		free(cache->private);
 }
 
+static int do_arc(struct arc_data *self, __u64 block)
+{
+	int res = 0;
+	__u64 enroll = 0;
+	struct cache_meta *entry = search_block(self, block);
+
+	if (entry) {
+		enroll = entry->seq;
+
+		switch (enroll) {
+		case T1:
+		case T2:
+			cache_meta_list_remove(get_list(self, enroll), entry);
+			entry->seq = T2;
+			cache_meta_list_insert_head(get_list(self, T2), entry);
+			break;
+
+		case B1:
+		case B2:
+			res++;
+			cache_meta_list_remove(get_list(self, enroll), entry);
+			entry->seq = T2;
+			adaptation(self, enroll);
+			replace(self, entry);
+			break;
+
+		default: break;
+		}
+	}
+	else {
+		res++;
+	}
+
+	return res;
+}
+
 static int arc_rw_block(struct local_cache *cache, struct io_request *req)
 {
+	int res = 0;
+	__u64 i;
+	struct arc_data *self = (struct arc_data *) cache->private;
 
-	return 0;
+	for (i = 0; i < req->len; i++)
+		res += do_arc(self, req->offset + i);
+
+	return res;
 }
 
 static void arc_dump(struct local_cache *cache, FILE *fp)
