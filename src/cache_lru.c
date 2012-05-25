@@ -173,8 +173,6 @@ static int lru_rw_block(struct local_cache *cache, struct io_request *req)
 	struct cache_meta *binfo;
 	__u64 i, pos;
 
-	dump_io_request(cachesim_config->output, req);
-
 	for (i = 0; i < req->len; i++) {
 		__u64 current = req->offset + i;
 

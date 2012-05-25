@@ -74,6 +74,10 @@ int node_pfs_rw_block(struct node *self, struct io_request *req)
 	if (!self || !req)
 		return -EINVAL;
 
+	/** FIXME: is this correct here?? we have to consider this carefully
+	 * when we implement the network cost. */
+	req->node = 0;
+
 	pfs_lock();
 	res = local_cache_rw_block(self->cache, req);
 	pfs_unlock();

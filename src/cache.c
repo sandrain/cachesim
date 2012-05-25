@@ -59,12 +59,12 @@ struct local_cache *local_cache_init(struct local_cache *self, int policy,
 	case CACHE_POLICY_MRU:
 		self->ops = &mru_cache_ops;
 		break;
+	case CACHE_POLICY_ARC:
+		self->ops = &arc_cache_ops;
+		break;
 #if 0
 	case CACHE_POLICY_LIRS:
 		self->ops = &lirs_cache_ops;
-		break;
-	case CACHE_POLICY_ARC:
-		self->ops = &arc_cache_ops;
 		break;
 #endif
 	default:
@@ -103,6 +103,14 @@ int local_cache_rw_block(struct local_cache *self, struct io_request *req)
 	}
 
 	return res;
+}
+
+int local_cache_sync_block(struct local_cache *self, struct io_request *req)
+{
+	if (self->pfs)	/** send request to the pfs */
+		return node_pfs_rw_block(self->pfs, req);
+	else		/** send request to local hdd */
+		return storage_rw_block(self->local->hdd, req);
 }
 
 void local_cache_dump(struct local_cache *self, FILE *fp)

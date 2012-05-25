@@ -21,6 +21,8 @@
  * paper:
  *  - Nimrod Megiddo and Dharmendra S. Modha
  *    ARC: A Self-Tuning, Low Overhead Replacement Cache, FAST 2003
+ *
+ * Tried to implemented the algorithm as it is.
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,7 +48,6 @@ struct arc_data {
 
 	struct cache_meta_list t1;	/* L1, recency list */
 	struct cache_meta_list b1;
-
 	struct cache_meta_list t2;	/* L2, frequency list */
 	struct cache_meta_list b2;
 

@@ -103,14 +103,10 @@ int local_cache_rw_block(struct local_cache *self, struct io_request *req);
  *
  * returns 0 on success
  */
-static inline
-int local_cache_sync_block(struct local_cache *self, struct io_request *req)
-{
-	if (self->pfs)	/** send request to the pfs */
-		return node_pfs_rw_block(self->pfs, req);
-	else		/** send request to local hdd */
-		return storage_rw_block(self->local->hdd, req);
-}
+int local_cache_sync_block(struct local_cache *self, struct io_request *req);
+
+/** This macro just defines an another name of local_cache_sync_block. */
+#define	local_cache_fetch_block		local_cache_sync_block
 
 /**
  * local_cache_dump dumps the state of the local_cache instance. This
@@ -120,9 +116,6 @@ int local_cache_sync_block(struct local_cache *self, struct io_request *req)
  * @fp: output stream.
  */
 void local_cache_dump(struct local_cache *self, FILE *fp);
-
-/** This macro just defines an another name of local_cache_sync_block. */
-#define	local_cache_fetch_block		local_cache_sync_block
 
 /**
  * Each cache algorithm should implement the following methods.
@@ -151,9 +144,9 @@ enum {
 	CACHE_POLICY_FIFO,
 	CACHE_POLICY_LRU,
 	CACHE_POLICY_MRU,
+	CACHE_POLICY_ARC,
 #if 0
 	CACHE_POLICY_LIRS,
-	CACHE_POLICY_ARC,
 #endif
 	N_CACHE_POLICIES
 };
@@ -163,9 +156,9 @@ extern struct local_cache_ops random_cache_ops;
 extern struct local_cache_ops fifo_cache_ops;
 extern struct local_cache_ops lru_cache_ops;
 extern struct local_cache_ops mru_cache_ops;
+extern struct local_cache_ops arc_cache_ops;
 #if 0
 extern struct local_cache_ops lirs_cache_ops;
-extern struct local_cache_ops arc_cache_ops;
 #endif
 
 #endif	/** __CACHE_H__ */
