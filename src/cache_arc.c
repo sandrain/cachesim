@@ -64,7 +64,13 @@ static inline
 void arc_entry_init(struct cache_meta *entry, __u64 block, int type)
 {
 	if (entry) {
-		entry->dirty = type == IOREQ_TYPE_READ ? 0 : 1;
+		switch (type) {
+		case IOREQ_TYPE_READ:  /* fall down */
+		case IOREQ_TYPE_ANY:   entry->dirty = 0; break;
+		case IOREQ_TYPE_WRITE: entry->dirty = 1; break;
+		default: break;
+		}
+
 		entry->block = block;
 	}
 }
@@ -103,7 +109,7 @@ static inline void adaptation(struct arc_data *self, __u64 id)
 
 	case B2:
 		delta = b2 >= b1 ? 1 : (__u64) ((double) b1 / b2);
-		delta -= self->p;
+		delta = self->p - delta;
 		self->p = max(delta, 0);
 		break;
 
@@ -164,6 +170,8 @@ static struct cache_meta *search_block(struct arc_data *self, __u64 block)
 		if (entry->block == block) {
 			if (entry->seq == T1 || entry->seq == T2)
 				self->cache->stat_hits++;
+			else
+				self->cache->stat_misses++;
 			return entry;
 		}
 	}
