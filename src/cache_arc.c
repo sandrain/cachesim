@@ -30,7 +30,9 @@
 #include "cachesim.h"
 #include "cache_util.h"
 
-/*#define	_DEBUG_ARC*/
+#if 0
+#define	_DEBUG_ARC
+#endif
 
 /**
  * arc cache_meta usage (struct cache_meta)
@@ -293,6 +295,12 @@ static int do_arc(struct arc_data *self, __u64 block, int type)
 			else {
 				entry = remove_cache_lru_entry(self, T1);
 				init_cache_entry(entry);
+
+				/** i don't understand here, actually arc keeps
+				 * the kicked out blocks in corresponding ghost
+				 * list. but here we just discard??
+				make_ghost_entry(self, T1, B1);
+				*/
 			}
 		}
 		else { /* sizeT1 + sizeB1 < c */
