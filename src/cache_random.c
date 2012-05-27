@@ -26,6 +26,8 @@
 struct rand_data {
 	__u64 block_count;
 	__u64 seq;
+
+	struct hash_table *htable;
 	struct cache_meta block_info[0];
 };
 
@@ -38,6 +40,13 @@ static inline __u64 get_random_frame(__u64 max)
 
 static __u64 search_block(struct rand_data *self, __u64 block)
 {
+	struct cache_meta *entry = NULL;
+
+	entry = hash_table_search(self->htable, &block, sizeof(block));
+
+	return entry ? entry->index : BLOCK_INVALID;
+
+#if 0
 	__u64 i;
 
 	for (i = 0; i < self->block_count; i++) {
@@ -51,13 +60,14 @@ static __u64 search_block(struct rand_data *self, __u64 block)
 	}
 
 	return BLOCK_INVALID;
+#endif
 }
 
 /**
  * get_free_frame; it first tries to find the empty frame in sequential
  * fashion. after consuming all the free frames it randomly choose a victim.
  *
- * @self: the random_data instance.
+ * @self: the rand_data instance.
  *
  * returns the index of the free frame.
  *
@@ -84,35 +94,44 @@ static void replace_block(struct local_cache *cache, __u64 frame, __u64 block,
 		cache->stat_replacements++;
 	}
 
+	hash_table_delete(self->htable, &binfo->block, sizeof(binfo->block));
+
 	/** fetch the requested block from the disk/pfs */
 	cache_fetch_block(cache, block);
 
 	binfo->dirty = dirty;
 	binfo->block = block;
+
+	hash_table_insert(self->htable, &block, sizeof(block), binfo);
 }
 
 static int random_init(struct local_cache *cache)
 {
-	__u64 i, block_count = 0;
 	struct node *local = cache->local;
 	struct rand_data *data = NULL;
+	struct hash_table *htable = NULL;
+	__u64 i, block_count = local->ram->block_count;
 
-	block_count = local->ram->block_count;
+	htable = hash_table_init(block_count);
+	if (!htable)
+		return -ENOMEM;
 
 	data = malloc(sizeof(struct rand_data) +
 			sizeof(struct cache_meta) * block_count);
-	if (data == NULL)
+	if (data == NULL) {
+		hash_table_exit(htable);
 		return -ENOMEM;
+	}
 
 	data->block_count = block_count;
 	data->seq = 0;
+	data->htable = htable;
 
 	for (i = 0; i < block_count; i++) {
 		struct cache_meta *current = &data->block_info[i];
-		current->dirty = BLOCK_CLEAN;
-		current->block = BLOCK_INVALID;
-		current->seq = 0;
-		current->private = NULL;
+
+		init_cache_entry(current);
+		current->index = i;
 	}
 
 	if (!rand_initialized) {
@@ -131,8 +150,14 @@ static int random_init(struct local_cache *cache)
 
 static void random_exit(struct local_cache *cache)
 {
-	if (cache && cache->private)
-		free(cache->private);
+	if (cache && cache->private) {
+		struct rand_data *self = (struct rand_data *)
+					cache->private;
+		if (self->htable)
+			hash_table_exit(self->htable);
+
+		free(self);
+	}
 }
 
 static int random_rw_block(struct local_cache *cache, struct io_request *req)

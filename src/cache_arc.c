@@ -57,6 +57,7 @@ struct arc_data {
 	struct cache_meta_list b2;
 
 	struct local_cache *cache;
+	struct hash_table *htable;
 
 	__u64 block_count;		/* cache size */
 	struct cache_meta block_info[0]; /* cache size * 2 (includes ghosts) */
@@ -163,6 +164,23 @@ static void replace(struct arc_data *self, struct cache_meta *entry)
 
 static struct cache_meta *search_block(struct arc_data *self, __u64 block)
 {
+	struct cache_meta *entry = NULL;
+
+	entry = hash_table_search(self->htable, &block, sizeof(block));
+
+	if (entry) {
+		if (entry->seq == T1 || entry->seq == T2)
+			self->cache->stat_hits++;
+		else
+			self->cache->stat_misses++;
+		return entry;
+	}
+
+	self->cache->stat_misses++;
+
+	return NULL;
+
+#if 0
 	__u64 i;
 	struct cache_meta *entry = NULL;
 
@@ -181,6 +199,7 @@ static struct cache_meta *search_block(struct arc_data *self, __u64 block)
 	self->cache->stat_misses++;
 
 	return NULL;
+#endif
 }
 
 static struct cache_meta *get_free_block(struct arc_data *self)
@@ -205,6 +224,11 @@ static int arc_init(struct local_cache *cache)
 	__u64 i;
 	__u64 block_count = cache->local->ram->block_count;
 	struct arc_data *self = NULL;
+	struct hash_table *htable = NULL;
+
+	htable = hash_table_init(block_count * 2);
+	if (!htable)
+		return -ENOMEM;
 
 	self = malloc(sizeof(struct arc_data)
 			+ sizeof(struct cache_meta) * block_count * 2);
@@ -225,19 +249,27 @@ static int arc_init(struct local_cache *cache)
 			tmp->index = i;
 		}
 
+		self->htable = htable;
 		self->cache = cache;
 		cache->private = self;
 	}
-	else
+	else {
+		hash_table_exit(htable);
 		return -ENOMEM;
+	}
 
 	return 0;
 }
 
 static void arc_exit(struct local_cache *cache)
 {
-	if (cache && cache->private)
-		free(cache->private);
+	if (cache && cache->private) {
+		struct arc_data *self = (struct arc_data *) cache->private;
+
+		if (self->htable)
+			hash_table_exit(self->htable);
+		free(self);
+	}
 }
 
 static void arc_dump(struct local_cache *cache, FILE *fp);
@@ -249,7 +281,7 @@ static int do_arc(struct arc_data *self, __u64 block, int type)
 	struct local_cache *cache = self->cache;
 	struct cache_meta *entry = search_block(self, block);
 
-	if (entry) {
+	if (entry) {	/* cache hit */
 		enroll = entry->seq;
 
 		switch (enroll) {
@@ -277,7 +309,7 @@ static int do_arc(struct arc_data *self, __u64 block, int type)
 		default: break;	/* BUG!! */
 		}
 	}
-	else {
+	else {		/* cache miss */
 		__u64 sizeT1 = get_list_size(self, T1);
 		__u64 sizeB1 = get_list_size(self, B1);
 		__u64 sizeT2 = get_list_size(self, T2);
@@ -294,6 +326,9 @@ static int do_arc(struct arc_data *self, __u64 block, int type)
 			}
 			else {
 				entry = remove_cache_lru_entry(self, T1);
+
+				hash_table_delete(self->htable, &entry->block,
+							sizeof(entry->block));
 				init_cache_entry(entry);
 
 				/** i don't understand here, actually arc keeps
@@ -309,6 +344,10 @@ static int do_arc(struct arc_data *self, __u64 block, int type)
 			if (sum >= c) {
 				if (sum == 2 * c) {
 					entry = remove_cache_lru_entry(self, B2);
+
+					hash_table_delete(self->htable,
+							&entry->block,
+							sizeof(entry->block));
 					init_cache_entry(entry);
 				}
 				replace(self, NULL);
@@ -320,6 +359,7 @@ static int do_arc(struct arc_data *self, __u64 block, int type)
 
 		arc_entry_init(entry, block, type);
 		add_cache_mru_entry(self, entry, T1);
+		hash_table_insert(self->htable, &block, sizeof(block), entry);
 	}
 
 #ifdef _DEBUG_ARC

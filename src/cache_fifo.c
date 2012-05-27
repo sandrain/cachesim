@@ -26,11 +26,21 @@ struct fifo_data {
 	__u64 block_count;
 	__u64 alloc_pos;
 	__u64 seq;
+
+	struct hash_table *htable;
+
 	struct cache_meta block_info[0];
 };
 
 static __u64 search_block(struct fifo_data *self, __u64 block)
 {
+	struct cache_meta *entry = NULL;
+
+	entry = hash_table_search(self->htable, &block, sizeof(block));
+
+	return entry ? entry->index : BLOCK_INVALID;
+
+#if 0
 	__u64 pos;
 	struct cache_meta *binfo = self->block_info;
 
@@ -42,6 +52,7 @@ static __u64 search_block(struct fifo_data *self, __u64 block)
 	}
 
 	return BLOCK_INVALID;
+#endif
 }
 
 static inline __u64 get_next_position(struct fifo_data *fifo)
@@ -75,6 +86,8 @@ static __u64 get_free_block(struct local_cache *cache)
 	if (binfo->dirty == BLOCK_DIRTY)
 		cache_sync_block(cache, binfo->block);
 
+	hash_table_delete(fifo->htable, &binfo->block, sizeof(binfo->block));
+
 	init_cache_entry(binfo);
 	cache->stat_replacements++;
 
@@ -86,19 +99,29 @@ static int fifo_init(struct local_cache *cache)
 	__u64 i;
 	struct node *local = cache->local;
 	struct fifo_data *data = NULL;
+	struct hash_table *htable = NULL;
 	__u64 block_count = local->ram->block_count;
+
+	htable = hash_table_init(block_count);
+	if (!htable)
+		return -ENOMEM;
 
 	data = malloc(sizeof(struct fifo_data)
 			+ sizeof(struct cache_meta) * block_count);
-	if (!data)
+	if (!data) {
+		hash_table_exit(htable);
 		return -ENOMEM;
+	}
 
 	data->block_count = block_count;
 	data->alloc_pos = 0;
 	data->seq = 0;
+	data->htable = htable;
 
-	for (i = 0; i < block_count; i++)
+	for (i = 0; i < block_count; i++) {
 		init_cache_entry(&data->block_info[i]);
+		data->block_info[i].index = i;
+	}
 
 	cache->private = data;
 	return 0;
@@ -106,8 +129,14 @@ static int fifo_init(struct local_cache *cache)
 
 static void fifo_exit(struct local_cache *cache)
 {
-	if (cache && cache->private)
-		free(cache->private);
+	if (cache && cache->private) {
+		struct fifo_data *self = (struct fifo_data *) cache->private;
+
+		if (self->htable)
+			hash_table_exit(self->htable);
+
+		free(self);
+	}
 }
 
 static int fifo_rw_block(struct local_cache *cache, struct io_request *req)
@@ -131,8 +160,10 @@ static int fifo_rw_block(struct local_cache *cache, struct io_request *req)
 			binfo->block = current;
 			if (req->type == IOREQ_TYPE_WRITE)
 				binfo->dirty = BLOCK_DIRTY;
-
 			binfo->seq = fifo->seq++;
+
+			hash_table_insert(fifo->htable, &current,
+						sizeof(current), binfo);
 
 			type = IOREQ_TYPE_WRITE;
 		}

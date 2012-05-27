@@ -160,6 +160,8 @@ static struct lru_data *init_self(struct local_cache *cache, int policy)
 			self->block_info[i].index = i;
 		}
 	}
+	else
+		hash_table_exit(htable);
 
 	return self;
 }
