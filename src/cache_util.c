@@ -61,6 +61,8 @@ int cache_rw_cache_dev(struct local_cache *cache, __u64 block, int type)
  *
  * hash table functions
  * copyright (c) 2005 dr. srinidhi varadarajan
+ *
+ * Just changed some coding styles.
  */
 
 struct hash_table *hash_table_init(__u64 size)
