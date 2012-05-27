@@ -62,7 +62,6 @@ struct cache_meta {
 static inline
 void init_cache_entry(struct cache_meta *entry)
 {
-	entry->index = BLOCK_INVALID;
 	entry->dirty = BLOCK_CLEAN;
 	entry->block = BLOCK_INVALID;
 	entry->seq = 0;
@@ -80,7 +79,6 @@ void init_cache_entry(struct cache_meta *entry)
 static inline
 void init_cache_entry_list(struct cache_meta *entry)
 {
-	entry->index = BLOCK_INVALID;
 	entry->dirty = BLOCK_CLEAN;
 	entry->block = BLOCK_INVALID;
 	entry->seq = 0;
@@ -340,6 +338,19 @@ struct cache_meta *cache_meta_list_remove(struct cache_meta_list *list,
 
 	return element;
 }
+
+#include "hash.h"
+
+struct hash_table *hash_table_init(__u64 size);
+
+void hash_table_exit(struct hash_table *self);
+
+int hash_table_insert(struct hash_table *self,
+			void *key, __u32 keylen, void *data);
+
+int hash_table_delete(struct hash_table *self, void *key, __u32 keylen);
+
+void *hash_table_search(struct hash_table *self, void *key, __u32 keylen);
 
 #endif	/** __CACHE_UTIL_H__ */
 

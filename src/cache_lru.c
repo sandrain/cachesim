@@ -33,6 +33,8 @@ struct lru_data {
 
 	struct cache_meta_list list;	/* head: mru, tail: lru */
 
+	struct hash_table *htable;
+
 	struct cache_meta block_info[0];
 };
 
@@ -73,6 +75,19 @@ static __u64 search_block(struct local_cache *cache, __u64 block)
 {
 	__u64 pos;
 	struct lru_data *self = (struct lru_data *) cache->private;
+	struct cache_meta *entry = NULL;
+
+	entry = (struct cache_meta *) hash_table_search(
+					self->htable, &block, sizeof(block));
+	if (entry) {
+		cache->stat_hits++;
+
+		pos = entry->index;
+		move_to_mru(self, pos);
+
+		return pos;
+	}
+#if 0
 	struct cache_meta *current;
 
 	for (pos = 0; pos < self->block_count; pos++) {
@@ -84,7 +99,7 @@ static __u64 search_block(struct local_cache *cache, __u64 block)
 			return pos;
 		}
 	}
-
+#endif
 	cache->stat_misses++;
 
 	return BLOCK_INVALID;
@@ -109,6 +124,8 @@ static __u64 get_free_block(struct local_cache *cache)
 	if (binfo->dirty)
 		cache_sync_block(cache, binfo->block);
 
+	hash_table_delete(self->htable, &binfo->block, sizeof(binfo->block));
+
 	move_to_mru(self, pos);
 	init_cache_entry_list(binfo);
 	cache->stat_replacements++;
@@ -121,6 +138,11 @@ static struct lru_data *init_self(struct local_cache *cache, int policy)
 	__u64 i;
 	__u64 block_count = cache->local->ram->block_count;
 	struct lru_data *self = NULL;
+	struct hash_table *htable = NULL;
+
+	htable = hash_table_init(block_count);
+	if (!htable)
+		return NULL;
 
 	self = malloc(sizeof(struct lru_data)
 			+ sizeof(struct cache_meta) * block_count);
@@ -129,10 +151,14 @@ static struct lru_data *init_self(struct local_cache *cache, int policy)
 		self->block_count = block_count;
 		self->seq = 0;
 		self->alloc_seq = 0;
+		self->htable = htable;
+
 		cache_meta_list_init(&self->list);
 
-		for (i = 0; i < block_count; i++)
+		for (i = 0; i < block_count; i++) {
 			init_cache_entry(&self->block_info[i]);
+			self->block_info[i].index = i;
+		}
 	}
 
 	return self;
@@ -162,8 +188,13 @@ static int mru_init(struct local_cache *cache)
 
 static void lru_exit(struct local_cache *cache)
 {
-	if (cache && cache->private)
-		free(cache->private);
+	if (cache && cache->private) {
+		struct lru_data *self = cache->private;
+		if (self->htable)
+			hash_table_exit(self->htable);
+
+		free(self);
+	}
 }
 
 static int lru_rw_block(struct local_cache *cache, struct io_request *req)
@@ -189,6 +220,9 @@ static int lru_rw_block(struct local_cache *cache, struct io_request *req)
 			if (req->type == IOREQ_TYPE_WRITE)
 				binfo->dirty = BLOCK_DIRTY;
 			binfo->seq = self->seq++;
+
+			hash_table_insert(self->htable, &current,
+					sizeof(__u64), binfo);
 
 			type = IOREQ_TYPE_WRITE;
 		}
