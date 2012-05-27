@@ -158,13 +158,13 @@ int hash_table_delete(struct hash_table *self, void *key, __u32 keylen)
 
 			free(current);
 
-			return 1;
+			return 0;
 		}
 		prev = current;
 		current = current->next;
 	}
 
-	return 0;
+	return -ENOENT;
 }
 
 void *hash_table_search(struct hash_table *self, void *key, __u32 keylen)

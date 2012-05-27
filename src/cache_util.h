@@ -339,17 +339,57 @@ struct cache_meta *cache_meta_list_remove(struct cache_meta_list *list,
 	return element;
 }
 
-#include "hash.h"
+#include "hash.h"	/** hash function and structure types. */
 
+/**
+ * hash_table_init initializes hash_table instance.
+ *
+ * @size: size of the hash_table.
+ *
+ * returns newly initialized hash_table instance, NULL on errors.
+ */
 struct hash_table *hash_table_init(__u64 size);
 
+/**
+ * hash_table_exit de-initializes hash_table instance.
+ *
+ * @self: hash_table instance to be destroyed.
+ */
 void hash_table_exit(struct hash_table *self);
 
+/**
+ * hash_table_insert inserts new element to the @self.
+ *
+ * @self: hash_table instance.
+ * @key: key.
+ * @keylen: key length, sizeof(*key).
+ * @data: data according to the @key.
+ *
+ * return 0 on successs, -ENOMEM if allocation fails.
+ */
 int hash_table_insert(struct hash_table *self,
 			void *key, __u32 keylen, void *data);
 
+/**
+ * hash_table_delete removes an entry from the @self.
+ *
+ * @self: hash_table instance.
+ * @key: key.
+ * @keylen: key length.
+ *
+ * returns 0 on success, -ENOENT if no entry is found.
+ */
 int hash_table_delete(struct hash_table *self, void *key, __u32 keylen);
 
+/**
+ * hash_table_search finds an entry according to the given key.
+ *
+ * @self: hash_table instance.
+ * @key: search key.
+ * @keylen: key length.
+ *
+ * returns (void *) data entry found. NULL if not found.
+ */
 void *hash_table_search(struct hash_table *self, void *key, __u32 keylen);
 
 #endif	/** __CACHE_UTIL_H__ */
