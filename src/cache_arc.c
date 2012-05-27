@@ -321,6 +321,8 @@ static int do_arc(struct arc_data *self, __u64 block, int type)
 		if (sizeT1 + sizeB1 == c) {
 			if (sizeT1 < c) {
 				entry = remove_cache_lru_entry(self, B1);
+				hash_table_delete(self->htable, &entry->block,
+							sizeof(entry->block));
 				init_cache_entry(entry);
 				replace(self, NULL);
 			}
