@@ -22,9 +22,14 @@
 #include "cachesim.h"
 #include "cache_util.h"
 
+#if 0
+#define	_LFU_DEBUG
+#endif
+
 struct lfu_data {
 	__u64 block_count;
 	__u64 alloc_seq;
+	__u64 seq;
 
 	struct local_cache *cache;
 	struct hash_table *htable;
@@ -36,15 +41,24 @@ struct lfu_data {
 /** TODO: This function should be re-written by using the priority queue. */
 static struct cache_meta *get_lfu_block(struct lfu_data *self)
 {
-	__u64 i, min = (__u64) -1, freq;
+	__u64 i, min = (__u64) -1, seq = (__u64) -1, freq;
 	struct cache_meta *current, *lfu = NULL;
 
 	for (i = 0; i < self->block_count; i++) {
 		current = &self->block_info[i];
 		freq = (__u64) current->private;
-		if (freq < min) {
+		if (freq < min)
 			min = freq;
-			lfu = current;
+	}
+
+	for (i = 0; i < self->block_count; i++) {
+		current = &self->block_info[i];
+		freq = (__u64) current->private;
+		if (freq == min) {
+			if (current->seq < seq) {
+				seq = current->seq;
+				lfu = current;
+			}
 		}
 	}
 
@@ -81,6 +95,7 @@ static void replacement(struct lfu_data *self, __u64 block, int dirty)
 	}
 
 	cache_fetch_block(self->cache, block);
+	entry->seq = self->seq;
 	entry->dirty = dirty;
 	entry->block = block;
 	entry->private = (void *) 1;
@@ -135,6 +150,8 @@ static int lfu_init(struct local_cache *cache)
 		current->private = (void *) 0;
 	}
 
+	self->alloc_seq = 0;
+	self->seq = 0;
 	self->block_count = block_count;
 	self->cache = cache;
 	self->htable = htable;
@@ -155,6 +172,8 @@ static void lfu_exit(struct local_cache *cache)
 	}
 }
 
+static void lfu_dump(struct local_cache *cache, FILE *fp);
+
 static int lfu_rw_block(struct local_cache *cache, struct io_request *req)
 {
 	__u64 i, block;
@@ -163,11 +182,14 @@ static int lfu_rw_block(struct local_cache *cache, struct io_request *req)
 	struct lfu_data *self = (struct lfu_data *) cache->private;
 
 	for (i = 0; i < req->len; i++) {
+		self->seq++;
+
 		block = req->offset + i;
 		dirty = req->type == IOREQ_TYPE_WRITE ? 1 : 0;
 
 		entry = search_block(self, block);
 		if (entry) {
+			entry->seq = self->seq;
 			if (dirty)
 				entry->dirty = 1;
 		}
@@ -176,6 +198,11 @@ static int lfu_rw_block(struct local_cache *cache, struct io_request *req)
 			replacement(self, block, dirty);
 		}
 	}
+
+#ifdef	_LFU_DEBUG
+	lfu_dump(cache, cachesim_config->output);
+	(void) getchar();
+#endif
 
 	return res;
 }
@@ -190,9 +217,10 @@ static void lfu_dump(struct local_cache *cache, FILE *fp)
 
 	for (i = 0; i < self->block_count; i++) {
 		current = &self->block_info[i];
-		fprintf(fp,	"[%5llu] %d, %llu, %llu\n",
+		fprintf(fp,	"[%5llu] %d, %llu, freq = %llu, seq = %llu\n",
 				i, current->dirty,
-				current->block, (__u64) current->private);
+				current->block, (__u64) current->private,
+				current->seq);
 	}
 }
 
