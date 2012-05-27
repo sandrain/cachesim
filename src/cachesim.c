@@ -62,6 +62,9 @@ static __u64 _netcost_pfs = 5;
 static int _comnode_cache_policy = CACHE_POLICY_RANDOM;
 static int _pfsnode_cache_policy = CACHE_POLICY_RANDOM;
 
+static char *_comnode_cache_policy_str;
+static char *_pfsnode_cache_policy_str;
+
 static char *_trace_file;
 
 static struct cachesim_config __cachesim_config;
@@ -112,16 +115,21 @@ static struct config_options options[] = {
 	{ "pfsnode_ram_size", OPT_U64, &_pfsnode_ram_size },
 	{ "pfsnode_ssd_size", OPT_U64, &_pfsnode_ssd_size },
 	{ "pfsnode_hdd_size", OPT_U64, &_pfsnode_hdd_size },
-	{ "comnode_cache_policy", OPT_U32, &_comnode_cache_policy },
-	{ "pfsnode_cache_policy", OPT_U32, &_pfsnode_cache_policy },
+	{ "comnode_cache_policy", OPT_STR, &_comnode_cache_policy_str },
+	{ "pfsnode_cache_policy", OPT_STR, &_pfsnode_cache_policy_str },
 	{ "netcost_local", OPT_U64, &_netcost_local },
 	{ "netcost_pfs", OPT_U64, &_netcost_pfs }
 };
+
 static int option_len = sizeof(options) / sizeof(struct config_options);
 static char linebuf[256];
 
 static char *config_file;
 static char *output_file;
+
+static char *cache_policies[] = {
+	"none", "random", "fifo", "lru", "mru", "lfu", "arc"
+};
 
 /**
  * read_configuration: reads and parses the configuration file.
@@ -222,6 +230,13 @@ static struct cachesim_config *read_configuration(char *config_file)
 	config->pfsnode_cache_policy = _pfsnode_cache_policy;
 	config->trace_file = _trace_file;
 
+	for (i = 0; i < sizeof(cache_policies) / sizeof(char *); i++) {
+		if (!strcmp(_comnode_cache_policy_str, cache_policies[i]))
+			config->comnode_cache_policy = i;
+		if (!strcmp(_pfsnode_cache_policy_str, cache_policies[i]))
+			config->pfsnode_cache_policy = i;
+	}
+
 	if (!config->trace_file)
 		config->trace_file = DEFAULT_TRACE_FILE;
 
@@ -320,8 +335,10 @@ static int cachesim_prepare(struct cachesim_config *config)
 		if (!node_data[i])
 			return -errno;
 
-		lcache = local_cache_init(&cache[i], _comnode_cache_policy,
-					node_data[i], &__pfs_node);
+		lcache = local_cache_init(&cache[i],
+					config->comnode_cache_policy,
+					node_data[i],
+					&__pfs_node);
 		node_set_local_cache(node_data[i], lcache);
 	}
 
@@ -348,7 +365,7 @@ static int cachesim_prepare(struct cachesim_config *config)
 	if (!pfs_node)
 		return -errno;
 
-	lcache = local_cache_init(&cache[i], _pfsnode_cache_policy,
+	lcache = local_cache_init(&cache[i], config->pfsnode_cache_policy,
 				pfs_node, NULL);
 	node_set_local_cache(pfs_node, lcache);
 

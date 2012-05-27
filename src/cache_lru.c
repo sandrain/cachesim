@@ -32,7 +32,6 @@ struct lru_data {
 	__u64 alloc_seq;
 
 	struct cache_meta_list list;	/* head: mru, tail: lru */
-
 	struct hash_table *htable;
 
 	struct cache_meta block_info[0];

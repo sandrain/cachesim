@@ -59,6 +59,9 @@ struct local_cache *local_cache_init(struct local_cache *self, int policy,
 	case CACHE_POLICY_MRU:
 		self->ops = &mru_cache_ops;
 		break;
+	case CACHE_POLICY_LFU:
+		self->ops = &lfu_cache_ops;
+		break;
 	case CACHE_POLICY_ARC:
 		self->ops = &arc_cache_ops;
 		break;
