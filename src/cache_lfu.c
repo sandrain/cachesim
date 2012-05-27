@@ -33,8 +33,65 @@ struct lfu_data {
 
 /** lfu uses cache_meta.@private field to keep the frequency of each block */
 
+/** TODO: This function should be re-written by using the priority queue. */
+static struct cache_meta *get_lfu_block(struct lfu_data *self)
+{
+	__u64 i, min = (__u64) -1, freq;
+	struct cache_meta *current, *lfu = NULL;
+
+	for (i = 0; i < self->block_count; i++) {
+		current = &self->block_info[i];
+		freq = (__u64) current->private;
+		if (freq < min) {
+			min = freq;
+			lfu = current;
+		}
+	}
+
+	return lfu;
+}
+
 static struct cache_meta *get_free_block(struct lfu_data *self)
 {
+	__u64 pos;
+
+	if (self->alloc_seq < self->block_count) {
+		pos = self->alloc_seq++;
+		return &self->block_info[pos];
+	}
+
+	return NULL;
+}
+
+static void replacement(struct lfu_data *self, __u64 block, int dirty)
+{
+	struct cache_meta *entry = NULL;
+
+	entry = get_free_block(self);
+	if (!entry) {
+		entry = get_lfu_block(self);
+		if (entry->dirty)
+			cache_sync_block(self->cache, entry->block);
+
+		hash_table_delete(self->htable, &entry->block,
+				sizeof(entry->block));
+		init_cache_entry(entry);
+
+		self->cache->stat_replacements++;
+	}
+
+	cache_fetch_block(self->cache, block);
+	entry->dirty = dirty;
+	entry->block = block;
+	entry->private = (void *) 1;
+
+	hash_table_insert(self->htable, &block, sizeof(block), entry);
+}
+
+static inline void increment_frequency(struct cache_meta *entry)
+{
+	__u64 current = (__u64) entry->private;
+	entry->private = (void *) (current + 1);
 }
 
 static struct cache_meta *search_block(struct lfu_data *self, __u64 block)
@@ -43,8 +100,10 @@ static struct cache_meta *search_block(struct lfu_data *self, __u64 block)
 	struct local_cache *cache = self->cache;
 
 	entry = hash_table_search(self->htable, &block, sizeof(block));
-	if (entry)
+	if (entry) {
 		cache->stat_hits++;
+		increment_frequency(entry);
+	}
 	else
 		cache->stat_misses++;
 
@@ -98,10 +157,43 @@ static void lfu_exit(struct local_cache *cache)
 
 static int lfu_rw_block(struct local_cache *cache, struct io_request *req)
 {
+	__u64 i, block;
+	int res = 0, dirty;
+	struct cache_meta *entry = NULL;
+	struct lfu_data *self = (struct lfu_data *) cache->private;
+
+	for (i = 0; i < req->len; i++) {
+		block = req->offset + i;
+		dirty = req->type == IOREQ_TYPE_WRITE ? 1 : 0;
+
+		entry = search_block(self, block);
+		if (entry) {
+			if (dirty)
+				entry->dirty = 1;
+		}
+		else {
+			res++;
+			replacement(self, block, dirty);
+		}
+	}
+
+	return res;
 }
 
-static void lfu_dump(struct local_cache *self, FILE *fp)
+/** TODO: this function should be re-written so that it can print entries in
+ * lfu order. */
+static void lfu_dump(struct local_cache *cache, FILE *fp)
 {
+	__u64 i;
+	struct lfu_data *self = (struct lfu_data *) cache->private;
+	struct cache_meta *current;
+
+	for (i = 0; i < self->block_count; i++) {
+		current = &self->block_info[i];
+		fprintf(fp,	"[%5llu] %d, %llu, %llu\n",
+				i, current->dirty,
+				current->block, (__u64) current->private);
+	}
 }
 
 struct local_cache_ops lfu_cache_ops = {

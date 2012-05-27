@@ -116,11 +116,18 @@ void generic_cache_dump(struct cache_meta *binfo, __u64 count, FILE *fp)
 		generic_cache_entry_dump(i, &binfo[i], fp);
 }
 
-int cache_sync_block(struct local_cache *self, __u64 block);
+/** TODO: this function should be re-written!! */
+static inline
+__u64 cache_get_block_count(struct local_cache *cache)
+{
+	return cache->local->ram->block_count;
+}
 
-int cache_fetch_block(struct local_cache *self, __u64 block);
+int cache_sync_block(struct local_cache *cache, __u64 block);
 
-int cache_rw_cache_dev(struct local_cache *self, __u64 block, int type);
+int cache_fetch_block(struct local_cache *cache, __u64 block);
+
+int cache_rw_cache_dev(struct local_cache *cache, __u64 block, int type);
 
 /**
  * cache_meta doubly linked list implementation. It's not a circular list.
