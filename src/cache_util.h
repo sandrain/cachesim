@@ -399,5 +399,7 @@ int hash_table_delete(struct hash_table *self, void *key, __u32 keylen);
  */
 void *hash_table_search(struct hash_table *self, void *key, __u32 keylen);
 
+#include "pqueue.h"
+
 #endif	/** __CACHE_UTIL_H__ */
 

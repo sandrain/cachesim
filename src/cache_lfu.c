@@ -47,8 +47,9 @@ static struct cache_meta *get_lfu_block(struct lfu_data *self)
 	for (i = 0; i < self->block_count; i++) {
 		current = &self->block_info[i];
 		freq = (__u64) current->private;
-		if (freq < min)
+		if (freq < min) {
 			min = freq;
+		}
 	}
 
 	for (i = 0; i < self->block_count; i++) {

@@ -189,3 +189,96 @@ void *hash_table_search(struct hash_table *self, void *key, __u32 keylen)
 	return NULL;
 }
 
+/**
+ * priority queue implementation
+ */
+
+static inline __u64 parent_pos(__u64 pos)
+{
+	return (pos - 1) / 2;
+}
+
+static inline __u64 left_pos(__u64 pos)
+{
+	return pos * 2 + 1;
+}
+
+static inline __u64 right_pos(__u64 pos)
+{
+	return pos * 2 + 2;
+}
+
+static void pqueue_heapify(struct pqueue *self, __u64 pos)
+{
+}
+
+struct pqueue *pqueue_init(__u64 capacity,
+			int (*cmp) (const void *d1, const void *d2))
+{
+	struct pqueue *self = NULL;
+
+	if (!cmp) {
+		errno = EINVAL;
+		return NULL;
+	}
+
+	self = malloc(sizeof(*self) + capacity * sizeof(void *));
+	if (!self) {
+		errno = ENOMEM;
+		return NULL;
+	}
+
+	self->size = 0;
+	self->capacity = capacity;
+	self->cmp = cmp;
+
+	return self;
+}
+
+void queue_exit(struct pqueue *self)
+{
+	if (self)
+		free(self);
+}
+
+int pqueue_enqueu(struct pqueue *self, void *data)
+{
+	__u64 i;
+	void *current = NULL;
+
+	i = self->size;
+
+	if (i >= self->capacity)
+		return -ENOSPC;
+
+	self->data[i] = data;
+	self->size++;
+
+	while (i > 0 &&
+		self->cmp(self->data[i], self->data[parent_pos(i)]) > 0)
+	{
+		current = self->data[i];
+		self->data[i] = self->data[parent_pos(i)];
+		self->data[parent_pos(i)] = current;
+		i = parent_pos(i);
+	}
+
+	return 0;
+}
+
+void *pqueue_dequeue(struct pqueue *self)
+{
+	void *data = NULL;
+
+	if (self->size < 1)
+		return NULL;
+
+	data = self->data[0];
+	self->data[0] = self->data[self->size - 1];
+	self->size--;
+
+	pqueue_heapify(self, 0);
+
+	return data;
+}
+
