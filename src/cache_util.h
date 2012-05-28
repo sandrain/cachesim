@@ -401,5 +401,43 @@ void *hash_table_search(struct hash_table *self, void *key, __u32 keylen);
 
 #include "pqueue.h"
 
+/**
+ * 
+ *
+ * @capacity
+ * @cmp
+ *
+ * 
+ */
+struct pqueue *pqueue_init(__u64 capacity,
+			int (*cmp) (const void *d1, const void *d2));
+
+/**
+ * 
+ *
+ * @self
+ */
+void queue_exit(struct pqueue *self);
+
+/**
+ * 
+ *
+ * @self
+ * @data
+ *
+ * 
+ */
+int pqueue_enqueue(struct pqueue *self,  void *data);
+
+/**
+ * 
+ *
+ * @self
+ *
+ * 
+ */
+void *pqueue_dequeue(struct pqueue *self);
+
+
 #endif	/** __CACHE_UTIL_H__ */
 

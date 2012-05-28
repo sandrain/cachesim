@@ -190,7 +190,9 @@ void *hash_table_search(struct hash_table *self, void *key, __u32 keylen)
 }
 
 /**
- * priority queue implementation
+ * priority queue implementation. This implementation is based on the source
+ * codes which can be found on:
+ * http://andreinc.net/2011/06/01/implementing-a-generic-priority-queue-in-c/
  */
 
 static inline __u64 parent_pos(__u64 pos)
@@ -268,7 +270,7 @@ void queue_exit(struct pqueue *self)
 		free(self);
 }
 
-int pqueue_enqueu(struct pqueue *self, void *data)
+int pqueue_enqueue(struct pqueue *self, void *data)
 {
 	__u64 i;
 	void *current = NULL;
