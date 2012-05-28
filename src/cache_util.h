@@ -21,17 +21,16 @@
 
 #include <linux/types.h>
 
+/** This module offers general utilities to implement various cache replacement
+ * policy. In addition to the basic data structure of block meta data, basic
+ * data structures are implemented; doubly linked list (not generic), hash
+ * table, and priority queue.
+ */
+
 #define	BLOCK_INVALID		((__u64) -1)
 
 #define min(a, b)		((a) < (b) ? (a) : (b))
 #define max(a, b)		((a) > (b) ? (a) : (b))
-
-/** TODO:
- * Generic data structures for cache systems should be implemented. That
- * should include linked list, hash table, and binary min-heap..??
- *
- * - linked list implemented.
- */
 
 enum { BLOCK_CLEAN = 0, BLOCK_DIRTY = 1 };
 
@@ -346,6 +345,9 @@ struct cache_meta *cache_meta_list_remove(struct cache_meta_list *list,
 	return element;
 }
 
+/**
+ * Hash table implementation. (using chaining for collision)
+ */
 #include "hash.h"	/** hash function and structure types. */
 
 /**
@@ -399,6 +401,9 @@ int hash_table_delete(struct hash_table *self, void *key, __u32 keylen);
  */
 void *hash_table_search(struct hash_table *self, void *key, __u32 keylen);
 
+/**
+ * Priority queue implementation. (using binary heap)
+ */
 #include "pqueue.h"
 
 /**
@@ -441,7 +446,6 @@ int pqueue_enqueue(struct pqueue *self,  void *data);
  * returns (void *) element with the max. priority, NULL if pqueue is empty.
  */
 void *pqueue_dequeue(struct pqueue *self);
-
 
 #endif	/** __CACHE_UTIL_H__ */
 
