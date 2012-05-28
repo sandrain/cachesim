@@ -67,13 +67,12 @@ static __u64 find_next_reference(struct opt_data *self, __u64 block)
 		sscanf(lbuf, "%llu %llu %c %llu",
 				&offset, &len, &type, &sequence);
 
-		if (offset > block || (offset + len) <= block) {
-			count += len;
-			continue;
-		}
+		count += len;
 
-		for (i = 0; i < len; i++) {
-		}
+		if (count < self->seq)
+			continue;
+
+		/**** TODO ****/
 	}
 }
 
