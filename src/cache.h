@@ -141,6 +141,7 @@ struct local_cache_ops {
 enum {
 	CACHE_POLICY_NONE = 0,
 	CACHE_POLICY_RANDOM,
+	CACHE_POLICY_OPT,
 	CACHE_POLICY_FIFO,
 	CACHE_POLICY_LRU,
 	CACHE_POLICY_MRU,
@@ -154,6 +155,7 @@ enum {
 
 extern struct local_cache_ops none_cache_ops;
 extern struct local_cache_ops random_cache_ops;
+extern struct local_cache_ops opt_cache_ops;
 extern struct local_cache_ops fifo_cache_ops;
 extern struct local_cache_ops lru_cache_ops;
 extern struct local_cache_ops mru_cache_ops;

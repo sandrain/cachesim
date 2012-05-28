@@ -128,7 +128,7 @@ static char *config_file;
 static char *output_file;
 
 static char *cache_policies[] = {
-	"none", "random", "fifo", "lru", "mru", "lfu", "arc"
+	"none", "random", "opt", "fifo", "lru", "mru", "lfu", "arc"
 };
 
 /**

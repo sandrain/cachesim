@@ -18,9 +18,12 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 #include "cache.h"
 #include "cache_util.h"
+
+#define	_DEBUG_OPT
 
 struct opt_data {
 	__u64 block_count;
@@ -33,7 +36,7 @@ struct opt_data {
 
 	struct hash_table *htable;
 	struct pqueue *pq;
-	struct cache_meta *block_info[0];
+	struct cache_meta block_info[0];
 };
 
 static int opt_compare(const struct cache_meta *e1,
@@ -53,27 +56,42 @@ static int opt_compare(const struct cache_meta *e1,
 static __u64 find_next_reference(struct opt_data *self, __u64 block)
 {
 	__u64 i, count = 0;
-	__u64 offset, len, sequence;
-	int type;
+	char type;
 	FILE *fp = self->fp;
 	char lbuf[64];
 
 	rewind(fp);
 
 	while (fgets(lbuf, 63, fp) != NULL) {
+		__u64 offset, len, sequence;
+
 		if (lbuf[0] == '#' || isspace(lbuf[0]))
 			continue;
 
 		sscanf(lbuf, "%llu %llu %c %llu",
 				&offset, &len, &type, &sequence);
 
-		count += len;
-
-		if (count < self->seq)
+		if (count + len <= self->seq) {
+			count += len;
 			continue;
+		}
 
-		/**** TODO ****/
+		/** one complication here is that the request can hold multiple
+		 * blocks. */
+		for (i = 0; i < len; i++) {
+			if (count + i <= self->seq) {
+				count += len;
+				continue;
+			}
+
+			if (offset + i == block)
+				return count + i;
+		}
+
+		count += len;
 	}
+
+	return BLOCK_INVALID;	/* not found */
 }
 
 static struct cache_meta *get_free_block(struct opt_data *self)
@@ -120,9 +138,10 @@ static void replacement(struct opt_data *self, __u64 block, int dirty)
 	pqueue_enqueue(self->pq, entry);
 }
 
-static struct cache_meta *search_block(struct opt_data *self)
+static struct cache_meta *search_block(struct opt_data *self, __u64 block)
 {
 	struct cache_meta *entry = NULL;
+	struct local_cache *cache = self->cache;
 
 	entry = hash_table_search(self->htable, &block, sizeof(block));
 	if (entry) {
@@ -133,6 +152,7 @@ static struct cache_meta *search_block(struct opt_data *self)
 		 * higher. */
 		entry->private = (void *) find_next_reference(self,
 							entry->block);
+		entry->seq = self->seq;
 		pqueue_fix_up(self->pq, entry);
 	}
 	else
@@ -152,7 +172,7 @@ int opt_init(struct local_cache *cache)
 
 	block_count = cache_get_block_count(cache);
 
-	fp = freopen(cache->local->app->trace);
+	fp = fopen(cachesim_config->trace_file, "r");
 	if (!fp) {
 		res = -errno;
 		goto out;
@@ -171,7 +191,7 @@ int opt_init(struct local_cache *cache)
 	}
 
 	self = malloc(sizeof(*self) +
-			sizeof(struct cache_meta *) * block_count);
+			sizeof(struct cache_meta) * block_count);
 	if (!self) {
 		res = -ENOMEM;
 		goto out_queue;
@@ -222,6 +242,10 @@ void opt_exit(struct local_cache *cache)
 	}
 }
 
+#ifdef	_DEBUG_OPT
+void opt_dump(struct local_cache *cache, FILE *fp);
+#endif
+
 int opt_rw_block(struct local_cache *cache, struct io_request *req)
 {
 	__u64 i, block;
@@ -247,14 +271,34 @@ int opt_rw_block(struct local_cache *cache, struct io_request *req)
 		}
 	}
 
+#ifdef	_DEBUG_OPT
+	opt_dump(cache, cachesim_config->output);
+	(void) getchar();
+#endif
+
 	return res;
 }
 
 void opt_dump(struct local_cache *cache, FILE *fp)
 {
+	__u64 i;
+	struct opt_data *self = (struct opt_data *) cache->private;
+	struct cache_meta *current;
+
+	for (i = 0; i <  self->block_count; i++) {
+		current = &self->block_info[i];
+
+		if (current->block == BLOCK_INVALID)
+			continue;
+
+		fprintf(fp,
+			"[%5llu] %d, %llu, seq = %llu, next = %llu\n",
+			i, current->dirty, current->block,
+			current->seq, (__u64) current->private);
+	}
 }
 
-struct local_cache_ops opt_ops = {
+struct local_cache_ops opt_cache_ops = {
 	.init		= &opt_init,
 	.exit		= &opt_exit,
 	.read_block	= &opt_rw_block,

@@ -50,6 +50,9 @@ struct local_cache *local_cache_init(struct local_cache *self, int policy,
 	case CACHE_POLICY_RANDOM:
 		self->ops = &random_cache_ops;
 		break;
+	case CACHE_POLICY_OPT:
+		self->ops = &opt_cache_ops;
+		break;
 	case CACHE_POLICY_FIFO:
 		self->ops = &fifo_cache_ops;
 		break;
