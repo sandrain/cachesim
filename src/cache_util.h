@@ -23,8 +23,8 @@
 
 /** This module offers general utilities to implement various cache replacement
  * policy. In addition to the basic data structure of block meta data, basic
- * data structures are implemented; doubly linked list (not generic), hash
- * table, and priority queue.
+ * data structures are implemented; doubly linked list, hash table, and
+ * priority queue.
  */
 
 #define	BLOCK_INVALID		((__u64) -1)
@@ -44,6 +44,9 @@ struct cache_meta {
 	__u64 index;		/* the index of the array */
 	__u64 block;		/* physical block number */
 	__u64 seq;		/* the request sequence */
+
+	__u64 qindex;		/* NOTE: DO NOT use this if you use the pqueue.
+				 * It internally uses this field. */
 
 	struct cache_meta *next;	/* list elements */
 	struct cache_meta *prev;
@@ -419,7 +422,8 @@ void *hash_table_search(struct hash_table *self, void *key, __u32 keylen);
  * returns pqueue instance on success, NULL on errors, with errno set.
  */
 struct pqueue *pqueue_init(__u64 capacity,
-			int (*cmp) (const void *d1, const void *d2));
+			int (*cmp) (const struct cache_meta *d1,
+				    const struct cache_meta *d2));
 
 /**
  * pqueue_exit de-initializes the pqueue instance.
@@ -436,7 +440,7 @@ void pqueue_exit(struct pqueue *self);
  *
  * return 0 on success, <0 on errors with errno set.
  */
-int pqueue_enqueue(struct pqueue *self,  void *data);
+int pqueue_enqueue(struct pqueue *self, struct cache_meta *data);
 
 /**
  * pqueue_dequeue fetches an element with the maximum priority in the queue.
@@ -446,6 +450,10 @@ int pqueue_enqueue(struct pqueue *self,  void *data);
  * returns (void *) element with the max. priority, NULL if pqueue is empty.
  */
 void *pqueue_dequeue(struct pqueue *self);
+
+void pqueue_fix_up(struct pqueue *self, struct cache_meta *entry);
+
+void pqueue_fix_down(struct pqueue *self, struct cache_meta *entry);
 
 #endif	/** __CACHE_UTIL_H__ */
 

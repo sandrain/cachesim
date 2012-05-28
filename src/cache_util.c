@@ -210,7 +210,31 @@ static inline __u64 right_pos(__u64 pos)
 	return pos * 2 + 2;
 }
 
-static void pqueue_heapify(struct pqueue *self, __u64 pos)
+static inline void pqueue_swap(struct pqueue *self, __u64 pos1, __u64 pos2)
+{
+	struct cache_meta *tmp;
+
+	tmp = self->data[pos1];
+	self->data[pos1] = self->data[pos2];
+	self->data[pos2] = tmp;
+
+	self->data[pos1]->qindex = pos1;
+	self->data[pos2]->qindex = pos2;
+}
+
+static void pqueue_heapify_up(struct pqueue *self, __u64 pos)
+{
+	__u64 i = pos;
+
+	while (i > 0 &&
+		self->cmp(self->data[i], self->data[parent_pos(i)]) > 0)
+	{
+		pqueue_swap(self, i, parent_pos(i));
+		i = parent_pos(i);
+	}
+}
+
+static void pqueue_heapify_down(struct pqueue *self, __u64 pos)
 {
 	void *tmp = NULL;
 	__u64 left, right, largest;
@@ -233,16 +257,20 @@ static void pqueue_heapify(struct pqueue *self, __u64 pos)
 	}
 
 	if (largest != pos) {
+		pqueue_swap(self, largest, pos);
+#if 0
 		tmp = self->data[largest];
 		self->data[largest] = self->data[pos];
 		self->data[pos] = tmp;
+#endif
 
 		pqueue_heapify(self, largest);
 	}
 }
 
 struct pqueue *pqueue_init(__u64 capacity,
-			int (*cmp) (const void *d1, const void *d2))
+			int (*cmp) (const struct cache_meta *d1,
+				    const struct cache_meta *d2))
 {
 	struct pqueue *self = NULL;
 
@@ -251,7 +279,8 @@ struct pqueue *pqueue_init(__u64 capacity,
 		return NULL;
 	}
 
-	self = malloc(sizeof(*self) + capacity * sizeof(void *));
+	self = malloc(sizeof(*self) +
+			capacity * sizeof(struct cache_meta *));
 	if (!self) {
 		errno = ENOMEM;
 		return NULL;
@@ -270,19 +299,23 @@ void pqueue_exit(struct pqueue *self)
 		free(self);
 }
 
-int pqueue_enqueue(struct pqueue *self, void *data)
+int pqueue_enqueue(struct pqueue *self, struct cache_meta *data)
 {
 	__u64 i;
-	void *current = NULL;
+	struct cache_meta *current = NULL;
 
 	i = self->size;
 
 	if (i >= self->capacity)
 		return -ENOSPC;
 
+	data->qindex = i;
 	self->data[i] = data;
 	self->size++;
 
+	pqueue_heapify_up(self, i);
+
+#if 0
 	while (i > 0 &&
 		self->cmp(self->data[i], self->data[parent_pos(i)]) > 0)
 	{
@@ -291,6 +324,7 @@ int pqueue_enqueue(struct pqueue *self, void *data)
 		self->data[parent_pos(i)] = current;
 		i = parent_pos(i);
 	}
+#endif
 
 	return 0;
 }
@@ -309,5 +343,15 @@ void *pqueue_dequeue(struct pqueue *self)
 	pqueue_heapify(self, 0);
 
 	return data;
+}
+
+void pqueue_fix_up(struct pqueue *self, struct cache_meta *entry)
+{
+	pqueue_heapify_up(self, entry->qindex);
+}
+
+void pqueue_fix_down(struct pqueue *self, struct cache_meta *entry)
+{
+	pqueue_heapify_down(self, entry->qindex);
 }
 

@@ -22,9 +22,7 @@
 #include "cachesim.h"
 #include "cache_util.h"
 
-#if 0
 #define	_LFU_DEBUG
-#endif
 
 struct lfu_data {
 	__u64 block_count;
@@ -33,6 +31,7 @@ struct lfu_data {
 
 	struct local_cache *cache;
 	struct hash_table *htable;
+	struct pqueue *pq;
 	struct cache_meta block_info[0];
 };
 
@@ -41,6 +40,7 @@ struct lfu_data {
 /** TODO: This function should be re-written by using the priority queue. */
 static struct cache_meta *get_lfu_block(struct lfu_data *self)
 {
+#if 0
 	__u64 i, min = (__u64) -1, seq = (__u64) -1, freq;
 	struct cache_meta *current, *lfu = NULL;
 
@@ -64,6 +64,8 @@ static struct cache_meta *get_lfu_block(struct lfu_data *self)
 	}
 
 	return lfu;
+#endif
+	return pqueue_dequeue(self->pq);
 }
 
 static struct cache_meta *get_free_block(struct lfu_data *self)
@@ -102,6 +104,7 @@ static void replacement(struct lfu_data *self, __u64 block, int dirty)
 	entry->private = (void *) 1;
 
 	hash_table_insert(self->htable, &block, sizeof(block), entry);
+	pqueue_enqueue(self->pq, entry);
 }
 
 static inline void increment_frequency(struct cache_meta *entry)
@@ -126,19 +129,50 @@ static struct cache_meta *search_block(struct lfu_data *self, __u64 block)
 	return entry;
 }
 
+static int lfu_compare(const void *d1, const void *d2)
+{
+	struct cache_meta *b1 = (struct cache_meta *) d1;
+	struct cache_meta *b2 = (struct cache_meta *) d2;
+	__u64 b1_freq = (__u64) b1->private;
+	__u64 b2_freq = (__u64) b2->private;
+	__u64 b1_rec = b1->seq;
+	__u64 b2_rec = b2->seq;
+
+	if (b1_freq < b2_freq)
+		return 1;
+	else if (b1_freq > b2_freq)
+		return -1;
+	else {
+		if (b1_rec < b2_rec)
+			return 1;
+		else if (b1_rec > b2_rec)
+			return -1;
+		else
+			return 0;
+	}
+}
+
 static int lfu_init(struct local_cache *cache)
 {
 	__u64 i;
 	__u64 block_count = cache_get_block_count(cache);
 	struct lfu_data *self = NULL;
 	struct hash_table *htable = NULL;
+	struct pqueue *pq;
 
 	htable = hash_table_init(block_count);
 	if (!htable)
 		return -ENOMEM;
 
+	pq = pqueue_init(block_count, &lfu_compare);
+	if (!pq) {
+		hash_table_exit(htable);
+		return -ENOMEM;
+	}
+
 	self = malloc(sizeof(*self) + sizeof(struct cache_meta) * block_count);
 	if (!self) {
+		pqueue_exit(pq);
 		hash_table_exit(htable);
 		return -ENOMEM;
 	}
@@ -156,6 +190,7 @@ static int lfu_init(struct local_cache *cache)
 	self->block_count = block_count;
 	self->cache = cache;
 	self->htable = htable;
+	self->pq = pq;
 	cache->private = self;
 
 	return 0;
@@ -173,7 +208,9 @@ static void lfu_exit(struct local_cache *cache)
 	}
 }
 
+#ifdef	_LFU_DEBUG
 static void lfu_dump(struct local_cache *cache, FILE *fp);
+#endif
 
 static int lfu_rw_block(struct local_cache *cache, struct io_request *req)
 {

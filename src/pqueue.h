@@ -20,14 +20,15 @@
 #define	__PQUEUE_H__
 
 #include <linux/types.h>
+#include "cache_util.h"
 
 struct pqueue {
-	__u64 size;
-	__u64 capacity;
+	__u64 size;		/* size of the queue at a given time */
+	__u64 capacity;		/* maximum size of the queue */
 
-	int (*cmp) (const void *d1, const void *d2);
+	int (*cmp) (const void *d1, const void *d2); /* compare function */
 
-	void *data[0];
+	struct cache_meta *data[0];	/* pointer to the data array */
 };
 
 #endif	/** __PQUEUE_H__ */
