@@ -22,7 +22,9 @@
 #include "cachesim.h"
 #include "cache_util.h"
 
+#if 0
 #define	_LFU_DEBUG
+#endif
 
 struct lfu_data {
 	__u64 block_count;
@@ -122,6 +124,7 @@ static struct cache_meta *search_block(struct lfu_data *self, __u64 block)
 	if (entry) {
 		cache->stat_hits++;
 		increment_frequency(entry);
+		pqueue_fix_down(self->pq, entry);
 	}
 	else
 		cache->stat_misses++;
@@ -129,7 +132,8 @@ static struct cache_meta *search_block(struct lfu_data *self, __u64 block)
 	return entry;
 }
 
-static int lfu_compare(const void *d1, const void *d2)
+static int lfu_compare(const struct cache_meta *d1,
+		       const struct cache_meta *d2)
 {
 	struct cache_meta *b1 = (struct cache_meta *) d1;
 	struct cache_meta *b2 = (struct cache_meta *) d2;
@@ -201,6 +205,9 @@ static void lfu_exit(struct local_cache *cache)
 	if (cache && cache->private) {
 		struct lfu_data *self = (struct lfu_data *) cache->private;
 
+		if (self->pq)
+			pqueue_exit(self->pq);
+
 		if (self->htable)
 			hash_table_exit(self->htable);
 
@@ -255,10 +262,12 @@ static void lfu_dump(struct local_cache *cache, FILE *fp)
 
 	for (i = 0; i < self->block_count; i++) {
 		current = &self->block_info[i];
-		fprintf(fp,	"[%5llu] %d, %llu, freq = %llu, seq = %llu\n",
-				i, current->dirty,
-				current->block, (__u64) current->private,
-				current->seq);
+		fprintf(fp,
+			"[%5llu] %d, %llu, freq = %llu, seq = %llu, "
+			"qi = %llu\n",
+			i, current->dirty,
+			current->block, (__u64) current->private,
+			current->seq, current->qindex);
 	}
 }
 

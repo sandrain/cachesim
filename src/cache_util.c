@@ -190,7 +190,8 @@ void *hash_table_search(struct hash_table *self, void *key, __u32 keylen)
 }
 
 /**
- * priority queue implementation. This implementation is based on the source
+ * priority queue implementation.
+ * Although it's heavily changed, this implementation is based on the source
  * codes which can be found on:
  * http://andreinc.net/2011/06/01/implementing-a-generic-priority-queue-in-c/
  */
@@ -236,7 +237,6 @@ static void pqueue_heapify_up(struct pqueue *self, __u64 pos)
 
 static void pqueue_heapify_down(struct pqueue *self, __u64 pos)
 {
-	void *tmp = NULL;
 	__u64 left, right, largest;
 
 	left = left_pos(pos);
@@ -258,13 +258,9 @@ static void pqueue_heapify_down(struct pqueue *self, __u64 pos)
 
 	if (largest != pos) {
 		pqueue_swap(self, largest, pos);
-#if 0
-		tmp = self->data[largest];
-		self->data[largest] = self->data[pos];
-		self->data[pos] = tmp;
-#endif
-
-		pqueue_heapify(self, largest);
+		/* FIXME: fix this to use iterative method, not the recursion.
+		 */
+		pqueue_heapify_down(self, largest);
 	}
 }
 
@@ -302,7 +298,6 @@ void pqueue_exit(struct pqueue *self)
 int pqueue_enqueue(struct pqueue *self, struct cache_meta *data)
 {
 	__u64 i;
-	struct cache_meta *current = NULL;
 
 	i = self->size;
 
@@ -314,17 +309,6 @@ int pqueue_enqueue(struct pqueue *self, struct cache_meta *data)
 	self->size++;
 
 	pqueue_heapify_up(self, i);
-
-#if 0
-	while (i > 0 &&
-		self->cmp(self->data[i], self->data[parent_pos(i)]) > 0)
-	{
-		current = self->data[i];
-		self->data[i] = self->data[parent_pos(i)];
-		self->data[parent_pos(i)] = current;
-		i = parent_pos(i);
-	}
-#endif
 
 	return 0;
 }
@@ -340,7 +324,7 @@ void *pqueue_dequeue(struct pqueue *self)
 	self->data[0] = self->data[self->size - 1];
 	self->size--;
 
-	pqueue_heapify(self, 0);
+	pqueue_heapify_down(self, 0);
 
 	return data;
 }

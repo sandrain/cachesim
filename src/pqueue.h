@@ -26,7 +26,8 @@ struct pqueue {
 	__u64 size;		/* size of the queue at a given time */
 	__u64 capacity;		/* maximum size of the queue */
 
-	int (*cmp) (const void *d1, const void *d2); /* compare function */
+	int (*cmp) (const struct cache_meta *d1, /* compare function */
+		    const struct cache_meta *d2);
 
 	struct cache_meta *data[0];	/* pointer to the data array */
 };

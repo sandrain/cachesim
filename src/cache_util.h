@@ -451,8 +451,22 @@ int pqueue_enqueue(struct pqueue *self, struct cache_meta *data);
  */
 void *pqueue_dequeue(struct pqueue *self);
 
+/**
+ * pqueue_fix_up rebuilds the priority queue in case of the priority of @entry
+ * became greater.
+ *
+ * @self: pqueue instance.
+ * @entry: updated entry.
+ */
 void pqueue_fix_up(struct pqueue *self, struct cache_meta *entry);
 
+/**
+ * pqueue_fix_down rebuilds the priority queue in case of the priority of
+ * @entry became smaller.
+ *
+ * @self: pqueue instance.
+ * @entry: updated entry.
+ */
 void pqueue_fix_down(struct pqueue *self, struct cache_meta *entry);
 
 #endif	/** __CACHE_UTIL_H__ */
