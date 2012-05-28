@@ -23,17 +23,42 @@
 #include "cache.h"
 #include "cache_util.h"
 
+#if 0
 #define	_DEBUG_OPT
+#endif
+
+/** This is applied and fixed!!
+ *This implementation takes too much time to finish; every time we access
+ * block, we scan the file and search the next reference of a block. Instead of
+ * this way, we can initially build a table for each block's reference then
+ * continue the actuall processing. That method only need to scan the file once
+ * and can decrease the running time significantly. Memory space overhead is
+ * the tradeoff.
+ */
+
+struct block_reference {
+	__u64 block;
+	__u64 seq;
+	struct block_reference *last;
+	struct block_reference *next;
+};
+
+struct block_table {
+	__u64 block_count;
+	__u64 request_count;
+	struct hash_table *htable;
+	struct block_reference ref_table[0];
+};
 
 struct opt_data {
 	__u64 block_count;
+	__u64 request_count;
 	__u64 alloc_seq;
 	__u64 seq;
 
 	struct local_cache *cache;
 
-	FILE *fp;
-
+	struct block_table *btable;
 	struct hash_table *htable;
 	struct pqueue *pq;
 	struct cache_meta block_info[0];
@@ -53,45 +78,131 @@ static int opt_compare(const struct cache_meta *e1,
 		return 0;
 }
 
-static __u64 find_next_reference(struct opt_data *self, __u64 block)
+static __u64 get_unique_block_count(void)
 {
-	__u64 i, count = 0;
-	char type;
-	FILE *fp = self->fp;
-	char lbuf[64];
+	FILE *fp;
+	char buf[128];
+	__u64 count;
+
+	sprintf(buf, "cat %s|grep -v '^#'|cut -f1 -d' '|sort -u|wc -l",
+			cachesim_config->trace_file);
+	fp = popen(buf, "r");
+	fgets(buf, 127, fp);
+	count = atoll(buf);
+	fclose(fp);
+
+	return count;
+}
+
+static __u64 get_request_count(void)
+{
+	FILE *fp;
+	char buf[128];
+	__u64 count;
+
+	sprintf(buf, "cat %s|grep -v '^#'|cut -f1 -d' '|wc -l",
+			cachesim_config->trace_file);
+	fp = popen(buf, "r");
+	fgets(buf, 127, fp);
+	count = atoll(buf);
+	fclose(fp);
+
+	return count;
+}
+
+static struct block_table *build_block_table(void)
+{
+	struct hash_table *htable = NULL;
+	struct block_table *bt = NULL;
+	__u64 bcount = get_unique_block_count();
+	__u64 rcount = get_request_count();
+	__u64 pos = 0;
+	char line[64];
+	FILE *fp;
+	struct block_reference *current, *tmp;
+
+	fp = fopen(cachesim_config->trace_file, "r");
+	if (!fp)
+		return NULL;
+
+	htable = hash_table_init(bcount);
+	if (!htable)
+		return NULL;
+
+	bt = malloc(sizeof(*bt) + sizeof(struct block_reference) * rcount);
+	if (!bt) {
+		hash_table_exit(htable);
+		return NULL;
+	}
+
+	bt->block_count = bcount;
+	bt->request_count = rcount;
+	bt->htable = htable;
 
 	rewind(fp);
 
-	while (fgets(lbuf, 63, fp) != NULL) {
-		__u64 offset, len, sequence;
+	rcount = 0;
 
-		if (lbuf[0] == '#' || isspace(lbuf[0]))
+	while (fgets(line, 63, fp) != NULL) {
+		char type;
+		__u64 i, offset, len, seq;
+
+		if (line[0] == '#' || isspace(line[0]))
 			continue;
 
-		sscanf(lbuf, "%llu %llu %c %llu",
-				&offset, &len, &type, &sequence);
+		sscanf(line, "%llu %llu %c %llu",
+				&offset, &len, &type, &seq);
 
-		if (count + len <= self->seq) {
-			count += len;
-			continue;
-		}
-
-		/** one complication here is that the request can hold multiple
-		 * blocks. */
 		for (i = 0; i < len; i++) {
-			if (count + i <= self->seq) {
-				count += len;
+			__u64 block = offset + i;
+			current = &bt->ref_table[pos++];
+			current->block = block;
+			current->seq = ++rcount;
+			current->last = NULL;
+			current->next = NULL;
+
+			tmp = hash_table_search(htable, &block, sizeof(block));
+			if (!tmp) {
+				hash_table_insert(htable, &block,
+						sizeof(block), current);
 				continue;
 			}
 
-			if (offset + i == block)
-				return count + i;
-		}
+			while (tmp->next)
+				tmp = tmp->next;
 
-		count += len;
+			tmp->next = current;
+		}
 	}
 
-	return BLOCK_INVALID;	/* not found */
+	fclose(fp);
+
+	return bt;
+}
+
+static void destory_block_table(struct block_table *bt)
+{
+	if (bt) {
+		if (bt->htable)
+			hash_table_exit(bt->htable);
+		free(bt);
+	}
+}
+
+static __u64 find_next_reference(struct opt_data *self, __u64 block)
+{
+	struct hash_table *ht = self->btable->htable;
+	struct block_reference *ref;
+
+	ref = hash_table_search(ht, &block, sizeof(block));
+	/** BUG if the ref not found!! */
+
+	if (!ref->last)
+		ref->last = ref;
+
+	ref->last = ref->last->next;
+
+	return ref->last ? ref->last->seq : BLOCK_INVALID;
 }
 
 static struct cache_meta *get_free_block(struct opt_data *self)
@@ -165,15 +276,15 @@ int opt_init(struct local_cache *cache)
 {
 	int res = 0;
 	__u64 i, block_count;
-	FILE *fp;
 	struct opt_data *self = NULL;
 	struct hash_table *htable;
+	struct block_table *btable;
 	struct pqueue *pq;
 
 	block_count = cache_get_block_count(cache);
 
-	fp = fopen(cachesim_config->trace_file, "r");
-	if (!fp) {
+	btable = build_block_table();
+	if (btable == NULL) {
 		res = -errno;
 		goto out;
 	}
@@ -181,7 +292,7 @@ int opt_init(struct local_cache *cache)
 	htable = hash_table_init(block_count);
 	if (!htable) {
 		res = -ENOMEM;
-		goto out_fp;
+		goto out;
 	}
 
 	pq = pqueue_init(block_count, &opt_compare);
@@ -201,7 +312,7 @@ int opt_init(struct local_cache *cache)
 	self->alloc_seq = 0;
 	self->seq = 0;
 	self->cache = cache;
-	self->fp = fp;
+	self->btable = btable;
 	self->htable = htable;
 	self->pq = pq;
 
@@ -220,8 +331,6 @@ out_queue:
 	pqueue_exit(pq);
 out_hash:
 	hash_table_exit(htable);
-out_fp:
-	fclose(fp);
 out:
 	return res;
 }
@@ -231,12 +340,14 @@ void opt_exit(struct local_cache *cache)
 	if (cache && cache->private) {
 		struct opt_data *self = (struct opt_data *) cache->private;
 
+		if (self->btable)
+			destory_block_table(self->btable);
+
 		if (self->pq)
 			pqueue_exit(self->pq);
+
 		if (self->htable)
 			hash_table_exit(self->htable);
-		if (self->fp)
-			fclose(self->fp);
 
 		free(self);
 	}
