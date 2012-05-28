@@ -238,29 +238,28 @@ static void pqueue_heapify_up(struct pqueue *self, __u64 pos)
 static void pqueue_heapify_down(struct pqueue *self, __u64 pos)
 {
 	__u64 left, right, largest;
+	__u64 current = pos;
 
-	left = left_pos(pos);
-	right = right_pos(pos);
+	while (1) {
+		left = left_pos(current);
+		right = right_pos(current);
 
-	if (left < self->size &&
-		self->cmp(self->data[left], self->data[pos]) > 0)
-	{
-		largest = left;
-	}
-	else
-		largest = pos;
+		if (left < self->size &&
+		    self->cmp(self->data[left], self->data[current]) > 0)
+			largest = left;
+		else
+			largest = current;
 
-	if (right < self->size &&
-		self->cmp(self->data[right], self->data[largest]) > 0)
-	{
-		largest = right;
-	}
+		if (right < self->size &&
+		    self->cmp(self->data[right], self->data[largest]) > 0)
+			largest = right;
 
-	if (largest != pos) {
-		pqueue_swap(self, largest, pos);
-		/* FIXME: fix this to use iterative method, not the recursion.
-		 */
-		pqueue_heapify_down(self, largest);
+		if (largest != current) {
+			pqueue_swap(self, largest, current);
+			current = largest;
+		}
+		else
+			break;
 	}
 }
 
@@ -297,9 +296,7 @@ void pqueue_exit(struct pqueue *self)
 
 int pqueue_enqueue(struct pqueue *self, struct cache_meta *data)
 {
-	__u64 i;
-
-	i = self->size;
+	__u64 i = self->size;
 
 	if (i >= self->capacity)
 		return -ENOSPC;
