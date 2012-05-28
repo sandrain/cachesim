@@ -272,7 +272,9 @@ static void arc_exit(struct local_cache *cache)
 	}
 }
 
+#ifdef	_DEBUG_ARC
 static void arc_dump(struct local_cache *cache, FILE *fp);
+#endif
 
 static int do_arc(struct arc_data *self, __u64 block, int type)
 {

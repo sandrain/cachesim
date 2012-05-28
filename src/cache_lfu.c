@@ -135,12 +135,10 @@ static struct cache_meta *search_block(struct lfu_data *self, __u64 block)
 static int lfu_compare(const struct cache_meta *d1,
 		       const struct cache_meta *d2)
 {
-	struct cache_meta *b1 = (struct cache_meta *) d1;
-	struct cache_meta *b2 = (struct cache_meta *) d2;
-	__u64 b1_freq = (__u64) b1->private;
-	__u64 b2_freq = (__u64) b2->private;
-	__u64 b1_rec = b1->seq;
-	__u64 b2_rec = b2->seq;
+	__u64 b1_freq = (__u64) d1->private;
+	__u64 b2_freq = (__u64) d2->private;
+	__u64 b1_rec = d1->seq;
+	__u64 b2_rec = d2->seq;
 
 	if (b1_freq < b2_freq)
 		return 1;
