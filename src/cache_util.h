@@ -402,39 +402,43 @@ void *hash_table_search(struct hash_table *self, void *key, __u32 keylen);
 #include "pqueue.h"
 
 /**
- * 
+ * pqueue_init initializes a priority queue.
  *
- * @capacity
- * @cmp
+ * @capacity: maximum number of elements.
+ * @cmp: pointer to the comparison function, which should be written by the
+ * caller. The function should return
+ *  0: if @d1 and @d2 have same priorities.
+ *  positive: if @d1 has greater priority than @d2.
+ *  negative: if @d1 has smaller priority than @d2.
  *
- * 
+ * returns pqueue instance on success, NULL on errors, with errno set.
  */
 struct pqueue *pqueue_init(__u64 capacity,
 			int (*cmp) (const void *d1, const void *d2));
 
 /**
- * 
+ * pqueue_exit de-initializes the pqueue instance.
  *
- * @self
+ * @self: pqueue instance.
  */
-void queue_exit(struct pqueue *self);
+void pqueue_exit(struct pqueue *self);
 
 /**
- * 
+ * pqueue_enqueue enqueues a new element into the given pqueue.
  *
- * @self
- * @data
+ * @self: pqueue instance.
+ * @data: new element to be queued.
  *
- * 
+ * return 0 on success, <0 on errors with errno set.
  */
 int pqueue_enqueue(struct pqueue *self,  void *data);
 
 /**
- * 
+ * pqueue_dequeue fetches an element with the maximum priority in the queue.
  *
- * @self
+ * @self: pqueue instance.
  *
- * 
+ * returns (void *) element with the max. priority, NULL if pqueue is empty.
  */
 void *pqueue_dequeue(struct pqueue *self);
 

@@ -264,7 +264,7 @@ struct pqueue *pqueue_init(__u64 capacity,
 	return self;
 }
 
-void queue_exit(struct pqueue *self)
+void pqueue_exit(struct pqueue *self)
 {
 	if (self)
 		free(self);
