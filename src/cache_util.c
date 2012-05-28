@@ -210,6 +210,33 @@ static inline __u64 right_pos(__u64 pos)
 
 static void pqueue_heapify(struct pqueue *self, __u64 pos)
 {
+	void *tmp = NULL;
+	__u64 left, right, largest;
+
+	left = left_pos(pos);
+	right = right_pos(pos);
+
+	if (left < self->size &&
+		self->cmp(self->data[left], self->data[pos]) > 0)
+	{
+		largest = left;
+	}
+	else
+		largest = pos;
+
+	if (right < self->size &&
+		self->cmp(self->data[right], self->data[largest]) > 0)
+	{
+		largest = right;
+	}
+
+	if (largest != pos) {
+		tmp = self->data[largest];
+		self->data[largest] = self->data[pos];
+		self->data[pos] = tmp;
+
+		pqueue_heapify(self, largest);
+	}
 }
 
 struct pqueue *pqueue_init(__u64 capacity,
