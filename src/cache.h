@@ -163,6 +163,7 @@ extern struct local_cache_ops lfu_cache_ops;
 extern struct local_cache_ops arc_cache_ops;
 #if 0
 extern struct local_cache_ops lirs_cache_ops;
+extern struct local_cache_ops lrfu_cache_ops;
 #endif
 
 #endif	/** __CACHE_H__ */
