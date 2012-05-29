@@ -55,6 +55,13 @@ struct cache_meta {
 };
 
 /**
+ * NOTE for this list!
+ * You cannot use this list structure if a cache_meta element can belong more
+ * than one list, for example, like LIRS does. In those cases, consider to use
+ * sys/queue library.
+ */
+
+/**
  * init_cache_entry initializes all the fields in given cache_meta instance. If
  * you want to keep the members related to maintaining a list as they are, use
  * init_cache_entry_list() instead.
@@ -184,7 +191,7 @@ struct cache_meta_list {
 	struct cache_meta *head;
 	struct cache_meta *tail;
 
-	__u64 size;	/* number of elements in the list */
+	__u64 size;	/* number of elements (currently) in the list */
 };
 
 /**

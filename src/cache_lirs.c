@@ -19,14 +19,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <sys/queue.h>
 
 #include "cachesim.h"
 #include "cache_util.h"
 
+#define	_DEBUG_LIRS
+
 /** LIRS implementation.
- * We use 1% of the capacity to hold HIR blocks, according to the
- * recommendation of the original LIRS paper. And there is no limitation in
- * the LIRS stack size, although it's not realistic.
+ * There is no limitation in the LIRS stack size, although it's not realistic.
  */
 
 static const __u16 B_L = 1;
@@ -40,19 +41,24 @@ struct lirs_meta {
 	__u16 type;
 	__u16 flags; 
 	__u64 irr;
+
+	TAILQ_ENTRY(lirs_meta) s;
+	TAILQ_ENTRY(lirs_meta) q;
 };
 
 struct lirs_data {
 	__u64 block_count;
 	__u64 total_block_count;
+	__u64 nlirs_max;
 	__u64 seq;
 	__u64 alloc_seq;
 	__u64 nlirs;
+	__u64 nresidents;
 
 	struct local_cache *cache;
 
-	struct cache_meta_list s;	/* tail: mru */
-	struct cache_meta_list q;
+	TAILQ_HEAD(stack_s, lirs_meta) s;
+	TAILQ_HEAD(stack_q, lirs_meta) q;
 
 	struct hash_table *htable;
 	struct lirs_meta block_info[0];
@@ -63,12 +69,12 @@ static void stack_prune(struct lirs_data *self)
 	struct lirs_meta *current;
 
 	while (1) {
-		current = (struct lirs_meta *) self->s.head;
+		current = TAILQ_FIRST(&self->s);
 		if (current->type == B_L)
 			break;
 
-		cache_meta_list_remove(&self->s,
-				(struct cache_meta *) current);
+
+		TAILQ_REMOVE(&self->s, current, s);
 		current->flags &= ~B_S;
 		if ((current->type & B_R) == 0)
 			current->type &= ~B_H;
@@ -79,11 +85,13 @@ static void reclaim(struct lirs_data *self)
 {
 	struct lirs_meta *entry;
 
-	if (self->alloc_seq < self->total_block_count)
+	if (self->nresidents <= self->block_count)
 		return;
 
-	entry = (struct lirs_meta *) cache_meta_list_remove_head(&self->q);
+	entry = TAILQ_FIRST(&self->q);
 	entry->type &= ~B_R;
+	TAILQ_REMOVE(&self->q, entry, q);
+	self->nresidents--;
 }
 
 static void reclaim_lir(struct lirs_data *self)
@@ -94,11 +102,12 @@ static void reclaim_lir(struct lirs_data *self)
 	if (self->nlirs <= self->block_count)
 		return;
 
-	entry = (struct lirs_meta *) cache_meta_list_remove_head(&self->s);
+	entry = TAILQ_FIRST(&self->s);
 	tmp = (struct cache_meta *) entry;
 	entry->type = B_H | B_R;
 	entry->flags &= ~B_S;
-	cache_meta_list_insert_tail(&self->q, tmp);
+	TAILQ_REMOVE(&self->s, entry, s);
+	TAILQ_INSERT_TAIL(&self->q, entry, q);
 	self->nlirs--;
 	stack_prune(self);
 }
@@ -109,7 +118,7 @@ static void reclaim_lir(struct lirs_data *self)
 static inline
 struct lirs_meta *alloc_next_block(struct lirs_data *self)
 {
-	assert(self->alloc_seq < self->total_block_count);
+	assert(self->alloc_seq <= self->total_block_count);
 	return &self->block_info[self->alloc_seq++];
 }
 
@@ -139,8 +148,8 @@ static int do_lirs(struct lirs_data *self, __u64 block, int type)
 	tmp = (struct cache_meta *) entry;
 
 	if (entry->type == B_L) {
-		cache_meta_list_remove(&self->s, tmp);
-		cache_meta_list_insert_tail(&self->s, tmp);
+		TAILQ_REMOVE(&self->s, entry, s);
+		TAILQ_INSERT_TAIL(&self->s, entry, s);
 		stack_prune(self);
 
 		cache->stat_hits++;
@@ -149,18 +158,18 @@ static int do_lirs(struct lirs_data *self, __u64 block, int type)
 
 	if (entry->type == (B_H | B_R)) {
 		if (entry->flags & B_S) {
-			cache_meta_list_remove(&self->s, tmp);
-			cache_meta_list_remove(&self->q, tmp);
+			TAILQ_REMOVE(&self->s, entry, s);
+			TAILQ_REMOVE(&self->q, entry, q);
 			entry->type = B_L;
 			self->nlirs++;
 			reclaim_lir(self);
 		}
 		else {
-			cache_meta_list_remove(&self->q, tmp);
-			cache_meta_list_insert_tail(&self->q, tmp);
+			TAILQ_REMOVE(&self->q, entry, q);
+			TAILQ_INSERT_TAIL(&self->q, entry, q);
 		}
 
-		cache_meta_list_insert_tail(&self->s, tmp);
+		TAILQ_INSERT_TAIL(&self->s, entry, s);
 		entry->flags |= B_S;
 
 		cache->stat_hits++;
@@ -168,12 +177,15 @@ static int do_lirs(struct lirs_data *self, __u64 block, int type)
 	}
 
 	cache->stat_misses++;
+	self->nresidents++;
 	reclaim(self);
 
 	if (entry->type == 0) {
+		hash_table_insert(self->htable, &block, sizeof(block), entry);
+
 		if (self->nlirs < self->block_count) {
 			entry->type = B_L;
-			cache_meta_list_insert_tail(&self->s, tmp);
+			TAILQ_INSERT_TAIL(&self->s, entry, s);
 			entry->flags |= B_S;
 			self->nlirs++;
 		}
@@ -183,17 +195,17 @@ static int do_lirs(struct lirs_data *self, __u64 block, int type)
 
 	if (entry->type == B_H) {
 		if (entry->flags & B_S) {
-			cache_meta_list_remove(&self->s, tmp);
+			TAILQ_REMOVE(&self->s, entry, s);
 			entry->type = B_L;
 			self->nlirs++;
 			reclaim_lir(self);
 		}
 		else {
 			entry->type = B_R;
-			cache_meta_list_insert_tail(&self->q, tmp);
+			TAILQ_INSERT_TAIL(&self->q, entry, q);
 		}
 
-		cache_meta_list_insert_tail(&self->s, tmp);
+		TAILQ_INSERT_TAIL(&self->s, entry, s);
 		entry->flags |= B_S;
 	}
 
@@ -229,10 +241,12 @@ int lirs_init(struct local_cache *cache)
 	self->seq = 0;
 	self->alloc_seq = 0;
 	self->nlirs = 0;
+	self->nresidents = 0;
 	self->htable = htable;
+	self->nlirs_max = block_count * 90 / 100;
 
-	cache_meta_list_init(&self->s);
-	cache_meta_list_init(&self->q);
+	TAILQ_INIT(&self->s);
+	TAILQ_INIT(&self->q);
 
 	for (i = 0; i < total_block_count; i++) {
 		current = &self->block_info[i];
@@ -252,7 +266,7 @@ int lirs_init(struct local_cache *cache)
 void lirs_exit(struct local_cache *cache)
 {
 	if (cache && cache->private) {
-		struct lirs_data *self = (struct lirs_data *) cache;
+		struct lirs_data *self = (struct lirs_data *) cache->private;
 
 		if (self->htable)
 			hash_table_exit(self->htable);
@@ -260,6 +274,17 @@ void lirs_exit(struct local_cache *cache)
 		free(self);
 	}
 }
+
+static inline void dump_lirs_block(struct lirs_meta *entry, FILE *fp)
+{
+	fprintf(fp, "%llu (%d, %d, irr = %llu)\n",
+			entry->binfo.block,
+			entry->type, entry->flags, entry->irr);
+}
+
+#ifdef	_DEBUG_LIRS
+void lirs_dump(struct local_cache *cache, FILE *fp);
+#endif
 
 int lirs_rw_block(struct local_cache *cache, struct io_request *req)
 {
@@ -274,6 +299,10 @@ int lirs_rw_block(struct local_cache *cache, struct io_request *req)
 		self->seq++;
 
 		res += do_lirs(self, block, type);
+#ifdef	_DEBUG_LIRS
+		lirs_dump(cache, cachesim_config->output);
+		getchar();
+#endif
 	}
 
 	return res;
@@ -281,6 +310,23 @@ int lirs_rw_block(struct local_cache *cache, struct io_request *req)
 
 void lirs_dump(struct local_cache *cache, FILE *fp)
 {
+	struct lirs_data *self = (struct lirs_data *) cache->private;
+	struct lirs_meta *current;
+
+	fprintf(fp, "\nlirs = %llu, residents = %llu",
+			self->nlirs, self->nresidents);
+
+	fprintf(fp, "\n** stack S (lru to mru) **\n");
+
+	TAILQ_FOREACH(current, &self->s, s) {
+		dump_lirs_block(current, fp);
+	}
+
+	fprintf(fp, "\n** stack Q (lru to mru) **\n");
+
+	TAILQ_FOREACH(current, &self->q, q) {
+		dump_lirs_block(current, fp);
+	}
 }
 
 struct local_cache_ops lirs_cache_ops = {
