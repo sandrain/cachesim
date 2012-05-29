@@ -55,6 +55,40 @@ int cache_rw_cache_dev(struct local_cache *cache, __u64 block, int type)
 	return storage_rw_block(cache->local->ram, &req);
 }
 
+/** currently the param @node is not used. */
+__u64 node_get_unique_block_count(struct node *node)
+{
+	FILE *fp;
+	char buf[128];
+	__u64 count;
+
+	sprintf(buf, "cat %s|grep -v '^#'|cut -f1 -d' '|sort -u|wc -l",
+			cachesim_config->trace_file);
+	fp = popen(buf, "r");
+	fgets(buf, 127, fp);
+	count = atoll(buf);
+	fclose(fp);
+
+	return count;
+}
+
+/** currently the param @node is not used. */
+__u64 node_get_request_count(struct node *node)
+{
+	FILE *fp;
+	char buf[128];
+	__u64 count;
+
+	sprintf(buf, "cat %s|grep -v '^#'|cut -f1 -d' '|wc -l",
+			cachesim_config->trace_file);
+	fp = popen(buf, "r");
+	fgets(buf, 127, fp);
+	count = atoll(buf);
+	fclose(fp);
+
+	return count;
+}
+
 /**
  * The implementation of this hash table is based on the dr.v's
  * impelementation:

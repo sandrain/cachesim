@@ -125,11 +125,56 @@ __u64 cache_get_block_count(struct local_cache *cache)
 	return cache->local->ram->block_count;
 }
 
+/**
+ * 
+ *
+ * @cache
+ * @block
+ *
+ * 
+ */
 int cache_sync_block(struct local_cache *cache, __u64 block);
 
+/**
+ * 
+ *
+ * @cache
+ * @block
+ *
+ * 
+ */
 int cache_fetch_block(struct local_cache *cache, __u64 block);
 
+/**
+ * 
+ *
+ * @cache
+ * @block
+ * @type
+ *
+ * 
+ */
 int cache_rw_cache_dev(struct local_cache *cache, __u64 block, int type);
+
+/**
+ * node_get_unique_block_count counts the number of unique blocks in the trace
+ * file that io_app runs.
+ *
+ * @node: node instance, usually local_cache->@local.
+ *
+ * returns the number of unique blocks.
+ */
+__u64 node_get_unique_block_count(struct node *node);
+
+/**
+ * node_get_request_count counts the number of total requests in the running
+ * trace file.
+ *
+ * @node: node instance.
+ *
+ * returns the total number of requests.
+ */
+__u64 node_get_request_count(struct node *node);
 
 /**
  * cache_meta doubly linked list implementation. It's not a circular list.

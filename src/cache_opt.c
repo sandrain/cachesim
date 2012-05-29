@@ -78,8 +78,10 @@ static int opt_compare(const struct cache_meta *e1,
 		return 0;
 }
 
-static __u64 get_unique_block_count(void)
+static inline __u64 get_unique_block_count(void)
 {
+	return node_get_unique_block_count(NULL);
+#if 0
 	FILE *fp;
 	char buf[128];
 	__u64 count;
@@ -92,10 +94,13 @@ static __u64 get_unique_block_count(void)
 	fclose(fp);
 
 	return count;
+#endif
 }
 
-static __u64 get_request_count(void)
+static inline __u64 get_request_count(void)
 {
+	return node_get_request_count(NULL);
+#if 0
 	FILE *fp;
 	char buf[128];
 	__u64 count;
@@ -108,6 +113,7 @@ static __u64 get_request_count(void)
 	fclose(fp);
 
 	return count;
+#endif
 }
 
 static struct block_table *build_block_table(void)
