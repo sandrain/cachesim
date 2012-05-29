@@ -147,9 +147,7 @@ enum {
 	CACHE_POLICY_MRU,
 	CACHE_POLICY_LFU,
 	CACHE_POLICY_ARC,
-#if 0
 	CACHE_POLICY_LIRS,
-#endif
 	N_CACHE_POLICIES
 };
 
@@ -161,8 +159,8 @@ extern struct local_cache_ops lru_cache_ops;
 extern struct local_cache_ops mru_cache_ops;
 extern struct local_cache_ops lfu_cache_ops;
 extern struct local_cache_ops arc_cache_ops;
-#if 0
 extern struct local_cache_ops lirs_cache_ops;
+#if 0
 extern struct local_cache_ops lrfu_cache_ops;
 #endif
 
