@@ -221,7 +221,7 @@ static struct cache_meta *get_free_block(struct arc_data *self)
 
 static int arc_init(struct local_cache *cache)
 {
-	__u64 i, __u64 block_count;
+	__u64 i, block_count;
 	struct arc_data *self = NULL;
 	struct hash_table *htable = NULL;
 
