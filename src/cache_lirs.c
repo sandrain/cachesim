@@ -276,9 +276,13 @@ void lirs_exit(struct local_cache *cache)
 
 static inline void dump_lirs_block(struct lirs_meta *entry, FILE *fp)
 {
-	fprintf(fp, "%llu (%d, %d, irr = %llu)\n",
+	fprintf(fp, "%5llu (%s, %s, irr = %llu)\n",
 			entry->binfo.block,
-			entry->type, entry->flags, entry->irr);
+			(entry->type == B_L) ? "L" :
+			(entry->type == (B_H | B_R)) ? "HR" :
+			(entry->type == B_H) ? "H" : "unknown",
+			(entry->flags & B_S) ? "S" : " ",
+			entry->irr);
 }
 
 #ifdef	_DEBUG_LIRS
