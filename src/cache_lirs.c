@@ -73,7 +73,6 @@ static void stack_prune(struct lirs_data *self)
 		if (current->type == B_L)
 			break;
 
-
 		TAILQ_REMOVE(&self->s, current, s);
 		current->flags &= ~B_S;
 		if ((current->type & B_R) == 0)
@@ -89,8 +88,8 @@ static void reclaim(struct lirs_data *self)
 		return;
 
 	entry = TAILQ_FIRST(&self->q);
-	entry->type &= ~B_R;
 	TAILQ_REMOVE(&self->q, entry, q);
+	entry->type &= ~B_R;
 	self->nresidents--;
 }
 
@@ -183,7 +182,7 @@ static int do_lirs(struct lirs_data *self, __u64 block, int type)
 	if (entry->type == 0) {
 		hash_table_insert(self->htable, &block, sizeof(block), entry);
 
-		if (self->nlirs < self->block_count) {
+		if (self->nlirs < self->nlirs_max) {
 			entry->type = B_L;
 			TAILQ_INSERT_TAIL(&self->s, entry, s);
 			entry->flags |= B_S;
