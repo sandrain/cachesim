@@ -98,7 +98,7 @@ static void reclaim_lir(struct lirs_data *self)
 	struct lirs_meta *entry;
 	struct cache_meta *tmp;
 
-	if (self->nlirs <= self->block_count)
+	if (self->nlirs <= self->nlirs_max)
 		return;
 
 	entry = TAILQ_FIRST(&self->s);
@@ -131,7 +131,6 @@ static int do_lirs(struct lirs_data *self, __u64 block, int type)
 {
 	struct local_cache *cache = self->cache;
 	struct lirs_meta *entry = NULL;
-	struct cache_meta *tmp;
 
 	entry = search_block(self, block);
 
@@ -144,7 +143,6 @@ static int do_lirs(struct lirs_data *self, __u64 block, int type)
 		entry->irr = self->seq - entry->binfo.seq - 1;
 
 	entry->binfo.seq = self->seq;
-	tmp = (struct cache_meta *) entry;
 
 	if (entry->type == B_L) {
 		TAILQ_REMOVE(&self->s, entry, s);
@@ -200,7 +198,7 @@ static int do_lirs(struct lirs_data *self, __u64 block, int type)
 			reclaim_lir(self);
 		}
 		else {
-			entry->type = B_R;
+			entry->type |= B_R;
 			TAILQ_INSERT_TAIL(&self->q, entry, q);
 		}
 
@@ -285,9 +283,26 @@ static inline void dump_lirs_block(struct lirs_meta *entry, FILE *fp)
 			entry->irr);
 }
 
-#ifdef	_DEBUG_LIRS
-void lirs_dump(struct local_cache *cache, FILE *fp);
-#endif
+void lirs_dump(struct local_cache *cache, FILE *fp)
+{
+	struct lirs_data *self = (struct lirs_data *) cache->private;
+	struct lirs_meta *current;
+
+	fprintf(fp, "\nlirs = %llu, residents = %llu",
+			self->nlirs, self->nresidents);
+
+	fprintf(fp, "\n** stack S (lru to mru) **\n");
+
+	TAILQ_FOREACH(current, &self->s, s) {
+		dump_lirs_block(current, fp);
+	}
+
+	fprintf(fp, "\n** stack Q (lru to mru) **\n");
+
+	TAILQ_FOREACH(current, &self->q, q) {
+		dump_lirs_block(current, fp);
+	}
+}
 
 int lirs_rw_block(struct local_cache *cache, struct io_request *req)
 {
@@ -309,27 +324,6 @@ int lirs_rw_block(struct local_cache *cache, struct io_request *req)
 	}
 
 	return res;
-}
-
-void lirs_dump(struct local_cache *cache, FILE *fp)
-{
-	struct lirs_data *self = (struct lirs_data *) cache->private;
-	struct lirs_meta *current;
-
-	fprintf(fp, "\nlirs = %llu, residents = %llu",
-			self->nlirs, self->nresidents);
-
-	fprintf(fp, "\n** stack S (lru to mru) **\n");
-
-	TAILQ_FOREACH(current, &self->s, s) {
-		dump_lirs_block(current, fp);
-	}
-
-	fprintf(fp, "\n** stack Q (lru to mru) **\n");
-
-	TAILQ_FOREACH(current, &self->q, q) {
-		dump_lirs_block(current, fp);
-	}
 }
 
 struct local_cache_ops lirs_cache_ops = {

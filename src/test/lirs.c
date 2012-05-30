@@ -33,6 +33,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <ctype.h>
 
 #define	DEBUG
 
@@ -79,7 +80,17 @@ void buf_print(struct buf *, char *);
 void
 buf_print(struct buf *bp, char *s)
 {
+	DFPRINTF(stderr, "%5d (%s, %s, irr = %d)\n",
+			(bp - bufs),
+		    (bp->b_type == B_L) ? "L" :
+		    (bp->b_type == (B_H | B_R)) ? "HR" :
+		    (bp->b_type == B_H) ? "H" :
+		    (bp->b_type == 0) ? "free" :
+		    "unknown",
+		    (bp->b_flags & B_S) ? "S" : "",
+		    bp->b_irr);
 
+#if 0
 	DFPRINTF(stderr, "%d(%s,%s,%d)%s", (bp - bufs),
 	    (bp->b_type == B_L) ? "L" :
 	    (bp->b_type == (B_H | B_R)) ? "HR" :
@@ -89,6 +100,7 @@ buf_print(struct buf *bp, char *s)
 	    (bp->b_flags & B_S) ? "S" : "",
 	    bp->b_irr,
 	    s);
+#endif
 }
 
 void
@@ -98,13 +110,13 @@ dump()
 	struct buf *bp;
 	int i;
 
-	DFPRINTF(stderr, "S: ");
+	DFPRINTF(stderr, "S:\n");
 	TAILQ_FOREACH(bp, &q_s, b_s) {
 		buf_print(bp, " ");
 	}
 	DFPRINTF(stderr, "\n");
 
-	DFPRINTF(stderr, "Q: ");
+	DFPRINTF(stderr, "Q:\n");
 	TAILQ_FOREACH(bp, &q_q, b_q) {
 		buf_print(bp, " ");
 	}
@@ -206,10 +218,12 @@ fault(struct object *dummy, int i)
 {
 	struct buf *bp;
 
+#if 0
 	DFPRINTF(stderr, "----------\n");
 	dump();
 
 	DFPRINTF(stderr, "---------- ts %d\n", ts);
+#endif
 
 	bp = &bufs[i];	
 	buf_print(bp, ": access\n");
@@ -275,13 +289,38 @@ done:
 	ts++;
 }
 
+static char *filename;
+static char linebuf[64];
+
 void
 test(void)
 {
 	struct object obj;
 	memset(&obj, 0, sizeof(obj));
 	char *ln;
+	FILE *fp;
 
+	fp = fopen(filename, "r");
+	if (!fp) {
+		perror("faile to open file");
+		return;
+	}
+
+	while (fgets(linebuf, 63, fp) != NULL) {
+		int offset, len, d1, d2;
+
+		if (linebuf[0] == '#' || isspace(linebuf[0]))
+			continue;
+
+		sscanf(linebuf, "%d %d %d %d", &offset, &len, &d1, &d2);
+		fault(&obj, offset);
+
+		dump();
+		getchar();
+	}
+
+
+#if 0
 	for (;; free(ln)) {
 		int i;
 		int ch;
@@ -303,11 +342,18 @@ test(void)
 		i = atoi(ln);
 		fault(&obj, i);
 	}
+#endif
 }
 
 int
 main(int argc, char *argv[])
 {
+	if (argc != 3) {
+		fprintf(stderr, "usage: %s <cache_size> <filename>\n",
+				argv[0]);
+		return 1;
+	}
+	filename = argv[2];
 
 	init(atoi(argv[1]));
 	test();
