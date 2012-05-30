@@ -31,6 +31,7 @@
 /** LIRS implementation.
  * There is no limitation in the LIRS stack size, although it's not realistic.
  */
+#define	LIRS_RATIO	99	/** in percent */
 
 static const __u16 B_L = 1;
 static const __u16 B_H = 2;
@@ -249,7 +250,10 @@ int lirs_init(struct local_cache *cache)
 	self->nlirs = 0;
 	self->nresidents = 0;
 	self->htable = htable;
-	self->nlirs_max = block_count * 90 / 100;
+	self->nlirs_max = block_count * LIRS_RATIO / 100;
+
+	if (self->nlirs_max == 0)
+		self->nlirs_max = 1;
 
 	TAILQ_INIT(&self->s);
 	TAILQ_INIT(&self->q);
