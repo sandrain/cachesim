@@ -24,7 +24,9 @@
 #include "cachesim.h"
 #include "cache_util.h"
 
+#if 0
 #define	_DEBUG_LIRS
+#endif
 
 /** LIRS implementation.
  * There is no limitation in the LIRS stack size, although it's not realistic.
@@ -83,6 +85,7 @@ static void stack_prune(struct lirs_data *self)
 static void reclaim(struct lirs_data *self)
 {
 	struct lirs_meta *entry;
+	struct local_cache *cache = self->cache;
 
 	if (self->nresidents <= self->block_count)
 		return;
@@ -91,24 +94,28 @@ static void reclaim(struct lirs_data *self)
 	TAILQ_REMOVE(&self->q, entry, q);
 	entry->type &= ~B_R;
 	self->nresidents--;
+	cache->stat_replacements++;
+
+	if (entry->binfo.dirty)
+		cache_sync_block(cache, entry->binfo.block);
 }
 
 static void reclaim_lir(struct lirs_data *self)
 {
 	struct lirs_meta *entry;
-	struct cache_meta *tmp;
+	struct local_cache *cache = self->cache;
 
 	if (self->nlirs <= self->nlirs_max)
 		return;
 
 	entry = TAILQ_FIRST(&self->s);
-	tmp = (struct cache_meta *) entry;
 	entry->type = B_H | B_R;
 	entry->flags &= ~B_S;
 	TAILQ_REMOVE(&self->s, entry, s);
 	TAILQ_INSERT_TAIL(&self->q, entry, q);
 	self->nlirs--;
 	stack_prune(self);
+	cache->stat_replacements++;
 }
 
 /** we count the number of blocks offline, so we always have meta blocks to
@@ -176,6 +183,8 @@ static int do_lirs(struct lirs_data *self, __u64 block, int type)
 	cache->stat_misses++;
 	self->nresidents++;
 	reclaim(self);
+
+	cache_fetch_block(cache, block);
 
 	if (entry->type == 0) {
 		hash_table_insert(self->htable, &block, sizeof(block), entry);
