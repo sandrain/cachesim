@@ -22,6 +22,8 @@
 #include "cachesim.h"
 #include "cache_util.h"
 
+#define	_DEBUG_2Q
+
 /** Kin, Kout params; according to the original paper, the reasonable
  * parameters are Kin = 0.3c and Kout = 0.5c where c denotes the cache
  * capacity.
@@ -34,6 +36,9 @@ struct twoq_data {
 	__u64 in_count;
 	__u64 out_count;
 	__u64 ghost_count;
+	__u64 residents;
+	__u64 seq;
+	__u64 alloc_seq;
 
 	struct cache_meta_list a1in;
 	struct cache_meta_list a1out;
@@ -42,6 +47,21 @@ struct twoq_data {
 	struct hash_table *htable;
 	struct cache_meta block_info[0];
 };
+
+static struct cache_meta *alloc_next_block(struct twoq_data *self)
+{
+	assert(self->alloc_seq <= self->block_count + self->ghost_count);
+	return &self->block_info[self->alloc_seq++];
+}
+
+static struct cache_meta *search_block(struct twoq_data *self, __u64 block)
+{
+	return hash_table_search(htable, &block, sizeof(block));
+}
+
+static void reclaim(struct twoq_data *self)
+{
+}
 
 static int twoq_init(struct local_cache *cache)
 {
@@ -71,6 +91,9 @@ static int twoq_init(struct local_cache *cache)
 	self->in_count = block_count * KIN / 100;
 	self->out_count = block_count - self->in_count;
 	self->ghost_count = block_count * KOUT / 100;
+	self->residents = 0;
+	self->seq = 0;
+	self->alloc_seq = 0;
 	self->htable = htable;
 
 	for (i = 0; i < total_block_count; i++) {
