@@ -18,7 +18,7 @@
  */
 
 /** LIRS implementation; the implementation is based on the test code written
- * by YAMAMOTO Takashi (NetBSD). Refer to the copyright below.
+ * by YAMAMOTO Takashi (@NetBSD). Refer to the copyright below.
  * There is no limitation in the LIRS stack size, although it's not realistic.
  */
 
@@ -31,8 +31,7 @@
  * are met:
  * 1. Redistributions of source code must retain the above copyright
  *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above
- * copyright
+ * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
  *
