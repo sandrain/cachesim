@@ -41,9 +41,9 @@ const static __u64 AM    = 4;
 
 struct twoq_data {
 	__u64 block_count;
+	__u64 total_block_count;
 	__u64 kin;
 	__u64 kout;
-	__u64 ghost_count;
 	__u64 seq;
 	__u64 alloc_seq;
 
@@ -56,69 +56,58 @@ struct twoq_data {
 	struct cache_meta block_info[0];
 };
 
-static struct cache_meta *get_free_block(struct twoq_data *self)
-{
-	if (self->alloc_seq < self->block_count + self->ghost_count)
-		return &self->block_info[self->alloc_seq++];
-	assert(0);
-}
-
 static struct cache_meta *search_block(struct twoq_data *self, __u64 block)
 {
 	return hash_table_search(self->htable, &block, sizeof(block));
 }
 
-#if 0
-static inline __u64 get_total_used_blocks(struct twoq_data *self)
+static void set_list(struct cache_meta *entry, __u64 list)
 {
-	return self->a1in.size + self->am.size + self->a1out.size;
-}
-#endif
-
-static inline __u64 get_resident_blocks(struct twoq_data *self)
-{
-	return self->a1in.size + self->am.size;
+	entry->private = (void *) list;
 }
 
-static struct cache_meta *reclaim(struct twoq_data *self)
+static inline struct cache_meta *alloc_next_block(struct twoq_data *self,
+					__u64 block, int type)
 {
 	struct cache_meta *entry = NULL;
 
-	if (get_resident_blocks(self) < self->block_count)
-		return get_free_block(self);
+	assert(self->alloc_seq < self->total_block_count);
+	entry = &self->block_info[self->alloc_seq++];
 
-	if (self->a1in.size > self->kin) {	/* kick out from A1IN */
-		entry = cache_meta_list_remove_tail(&self->a1in);
-		if (entry->dirty)
-			cache_sync_block(self->cache, entry->block);
-
-		entry->private = (void *) A1OUT;
-		cache_meta_list_insert_head(&self->a1out, entry);
-
-		if (self->a1out.size > self->kout) {
-			entry = cache_meta_list_remove_tail(&self->a1out);
-			init_cache_entry(entry);
-		}
-
-		return get_free_block(self);
-	}
-
-	/* kick out from AM */
-	entry = cache_meta_list_remove_tail(&self->am);
-	cache_sync_block(self->cache, entry->block);
-	hash_table_delete(self->htable, &entry->block, sizeof(entry->block));
-	init_cache_entry(entry);
-
-	return get_free_block(self);
-}
-
-static inline void init_twoq_entry(struct twoq_data *self,
-			struct cache_meta *entry, __u64 block, int type)
-{
 	entry->dirty = type;
 	entry->block = block;
 	entry->seq = self->seq;
 	entry->private = (void *) A1IN;	/* New entries always go to a1in */
+
+	return entry;
+}
+
+static void reclaim(struct twoq_data *self, struct cache_meta *entry)
+{
+	__u64 list = (__u64) entry->private;
+	__u64 sizeA1IN = self->a1in.size;
+	struct cache_meta *tmp;
+
+	if (self->a1in.size + self->am.size <= self->block_count)
+		return;
+
+	if (list == A1IN)
+		sizeA1IN--;
+
+	if (sizeA1IN > self->kin) {
+		tmp = cache_meta_list_remove_tail(&self->a1in);
+		set_list(tmp, A1OUT);
+		cache_meta_list_insert_head(&self->a1out, tmp);
+
+		if (self->a1out.size > self->kout) {
+			tmp = cache_meta_list_remove_tail(&self->a1out);
+			set_list(tmp, 0);
+		}
+	}
+	else {
+		tmp = cache_meta_list_remove_tail(&self->am);
+		set_list(tmp, 0);
+	}
 }
 
 static int do_twoq(struct twoq_data *self, __u64 block, int type)
@@ -129,19 +118,41 @@ static int do_twoq(struct twoq_data *self, __u64 block, int type)
 
 	entry = search_block(self, block);
 
-	if (!entry) {
+	if (!entry) {		/* new entry */
 		cache->stat_misses++;
 		cache_fetch_block(cache, block);
 
-		entry = reclaim(self);
-		init_twoq_entry(self, entry, block, type);
+		entry = alloc_next_block(self, block, type);
 		cache_meta_list_insert_head(&self->a1in, entry);
 		hash_table_insert(self->htable, &block, sizeof(block), entry);
+
+		reclaim(self, entry);
 
 		return 1;
 	}
 
 	list = (__u64) entry->private;
+
+	if (list == 0) {	/* kicked out entry */
+		cache->stat_misses++;
+		cache_fetch_block(cache, block);
+
+		set_list(entry, A1IN);
+		cache_meta_list_insert_head(&self->a1in, entry);
+
+		reclaim(self, entry);
+
+		return 1;
+	}
+
+	if (list == AM) {	/* AM hit */
+		cache->stat_hits++;
+
+		entry = cache_meta_list_remove(&self->am, entry);
+		cache_meta_list_insert_head(&self->am, entry);
+
+		return 0;
+	}
 
 	if (list == A1OUT) {	/* ghost hit */
 		cache->stat_misses++;
@@ -151,19 +162,14 @@ static int do_twoq(struct twoq_data *self, __u64 block, int type)
 		entry->dirty = type;
 		entry->private = (void *) AM;
 		cache_meta_list_insert_head(&self->am, entry);
-		(void) reclaim(self);
+
+		reclaim(self, entry);
 
 		return 1;
 	}
 
-	if (list == AM) {
-		entry = cache_meta_list_remove(&self->am, entry);
-		cache_meta_list_insert_head(&self->am, entry);
-	}
-
 	/* do nothing about the rest; A1 hit */
 	cache->stat_hits++;
-
 	return 0;
 }
 
@@ -220,7 +226,7 @@ static int twoq_init(struct local_cache *cache)
 	struct twoq_data *self = NULL;
 
 	block_count = cache_get_block_count(cache);
-	total_block_count = block_count + block_count * KOUT / 100;
+	total_block_count = node_get_unique_block_count(NULL);
 
 	htable = hash_table_init(block_count);
 	if (!htable)
@@ -238,9 +244,9 @@ static int twoq_init(struct local_cache *cache)
 	cache_meta_list_init(&self->am);
 
 	self->block_count = block_count;
+	self->total_block_count = total_block_count;
 	self->kin = block_count * KIN / 100;
-	self->kout = block_count - self->kin;
-	self->ghost_count = block_count * KOUT / 100;
+	self->kout = block_count * KOUT / 100;
 	self->seq = 0;
 	self->alloc_seq = 0;
 	self->htable = htable;
