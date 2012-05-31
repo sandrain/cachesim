@@ -129,7 +129,7 @@ static char *output_file;
 
 static char *cache_policies[] = {
 	"none", "random", "opt", "fifo", "lru", "mru", "lfu", "arc",
-	"lirs"
+	"lirs", "2q"
 };
 
 /**
