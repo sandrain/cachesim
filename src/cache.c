@@ -72,7 +72,7 @@ struct local_cache *local_cache_init(struct local_cache *self, int policy,
 		self->ops = &lirs_cache_ops;
 		break;
 	case CACHE_POLICY_2Q:
-		self->ops = &lirs_cache_ops;
+		self->ops = &twoq_cache_ops;
 		break;
 	default:
 		self->ops = &none_cache_ops;

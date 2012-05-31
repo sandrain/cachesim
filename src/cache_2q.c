@@ -18,6 +18,7 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #include "cachesim.h"
 #include "cache_util.h"
@@ -49,7 +50,6 @@ struct twoq_data {
 	struct cache_meta_list a1in;
 	struct cache_meta_list a1out;
 	struct cache_meta_list am;
-	struct cache_meta_list free;
 
 	struct local_cache *cache;
 	struct hash_table *htable;
@@ -60,8 +60,7 @@ static struct cache_meta *get_free_block(struct twoq_data *self)
 {
 	if (self->alloc_seq < self->block_count + self->ghost_count)
 		return &self->block_info[self->alloc_seq++];
-
-	return cache_meta_list_remove_head(&self->free);
+	assert(0);
 }
 
 static struct cache_meta *search_block(struct twoq_data *self, __u64 block)
@@ -74,22 +73,21 @@ static inline __u64 get_total_used_blocks(struct twoq_data *self)
 {
 	return self->a1in.size + self->am.size + self->a1out.size;
 }
+#endif
 
 static inline __u64 get_resident_blocks(struct twoq_data *self)
 {
 	return self->a1in.size + self->am.size;
 }
-#endif
 
 static struct cache_meta *reclaim(struct twoq_data *self)
 {
 	struct cache_meta *entry = NULL;
 
-	entry = get_free_block(self);
-	if (entry)
-		return entry;
+	if (get_resident_blocks(self) < self->block_count)
+		return get_free_block(self);
 
-	if (self->a1in.size > self->kin) {
+	if (self->a1in.size > self->kin) {	/* kick out from A1IN */
 		entry = cache_meta_list_remove_tail(&self->a1in);
 		if (entry->dirty)
 			cache_sync_block(self->cache, entry->block);
@@ -100,18 +98,18 @@ static struct cache_meta *reclaim(struct twoq_data *self)
 		if (self->a1out.size > self->kout) {
 			entry = cache_meta_list_remove_tail(&self->a1out);
 			init_cache_entry(entry);
-			cache_meta_list_insert_head(&self->free, entry);
 		}
 
 		return get_free_block(self);
 	}
 
+	/* kick out from AM */
 	entry = cache_meta_list_remove_tail(&self->am);
 	cache_sync_block(self->cache, entry->block);
 	hash_table_delete(self->htable, &entry->block, sizeof(entry->block));
 	init_cache_entry(entry);
 
-	return entry;
+	return get_free_block(self);
 }
 
 static inline void init_twoq_entry(struct twoq_data *self,
@@ -149,10 +147,11 @@ static int do_twoq(struct twoq_data *self, __u64 block, int type)
 		cache->stat_misses++;
 		cache_fetch_block(cache, block);
 
-		(void) reclaim(self);
+		cache_meta_list_remove(&self->a1out, entry);
 		entry->dirty = type;
 		entry->private = (void *) AM;
 		cache_meta_list_insert_head(&self->am, entry);
+		(void) reclaim(self);
 
 		return 1;
 	}
@@ -170,6 +169,27 @@ static int do_twoq(struct twoq_data *self, __u64 block, int type)
 
 static void twoq_dump(struct local_cache *cache, FILE *fp)
 {
+	__u64 i;
+	struct twoq_data *self = cache->private;
+	struct cache_meta *current;
+
+	fprintf(fp, "\n2Q: kin=%llu, kout=%llu", self->kin, self->kout);
+	fprintf(fp, "\n===========================[%llu]", self->seq);
+
+	fprintf(fp, "\n** AM (%llu entries) **\n", self->am.size);
+	for (i = 0, current = self->am.head; current;
+			current = current->next, i++)
+		generic_cache_entry_dump(i, current, fp);
+
+	fprintf(fp, "\n** A1IN (%llu entries) **\n", self->a1in.size);
+	for (i = 0, current = self->a1in.head; current;
+			current = current->next, i++)
+		generic_cache_entry_dump(i, current, fp);
+
+	fprintf(fp, "\n** A1OUT (%llu entries) **\n", self->a1out.size);
+	for (i = 0, current = self->a1out.head; current;
+			current = current->next, i++)
+		generic_cache_entry_dump(i, current, fp);
 }
 
 static int twoq_rw_block(struct local_cache *cache, struct io_request *req)
@@ -216,7 +236,6 @@ static int twoq_init(struct local_cache *cache)
 	cache_meta_list_init(&self->a1in);
 	cache_meta_list_init(&self->a1out);
 	cache_meta_list_init(&self->am);
-	cache_meta_list_init(&self->free);
 
 	self->block_count = block_count;
 	self->kin = block_count * KIN / 100;
