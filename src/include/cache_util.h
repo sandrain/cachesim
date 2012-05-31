@@ -55,7 +55,7 @@ struct cache_meta {
 };
 
 /**
- * NOTE for this list!
+ * NOTE for using this list!!!
  * You cannot use this list structure if a cache_meta element can belong more
  * than one list, for example, like LIRS does. In those cases, consider to use
  * sys/queue library.
@@ -133,39 +133,41 @@ __u64 cache_get_block_count(struct local_cache *cache)
 }
 
 /**
- * 
+ * cache_sync_block syncs the dirty cached block to the stable storage. This
+ * actually incurs a write request to the stable storage.
  *
- * @cache
- * @block
+ * @cache: local_cache instance.
+ * @block: block address.
  *
- * 
+ * returns 0.
  */
 int cache_sync_block(struct local_cache *cache, __u64 block);
 
 /**
- * 
+ * cache_fetch_block fetches the given block from the stable storage. This
+ * actually incurs a read request to the stable storage.
  *
- * @cache
- * @block
+ * @cache: cache instance.
+ * @block: block address.
  *
- * 
+ * returns 0.
  */
 int cache_fetch_block(struct local_cache *cache, __u64 block);
 
 /**
- * 
+ * cache_rw_cache_dev reads/writes a block from a cache device, such as ram.
  *
- * @cache
- * @block
- * @type
+ * @cache: cache instance.
+ * @block: block address.
+ * @type: read(0) or write(1).
  *
- * 
+ * returns 0.
  */
 int cache_rw_cache_dev(struct local_cache *cache, __u64 block, int type);
 
 /**
  * node_get_unique_block_count counts the number of unique blocks in the trace
- * file that io_app runs.
+ * file that io_app runs. This function makes your implementation easier.
  *
  * @node: node instance, usually local_cache->@local.
  *

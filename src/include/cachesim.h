@@ -65,13 +65,16 @@ void print_statistics(FILE *fp, struct node_statistics *stat)
 			"\nhdd_writes = %llu"
 			"\ncache_hits = %llu"
 			"\ncache_misses = %llu"
-			"\ncache_replacements = %llu\n",
+			"\ncache_replacements = %llu\n"
+			"\nhit ratio = %.2f\n",
 			stat->id,
 			stat->ram_reads, stat->ram_writes,
 			stat->ssd_reads, stat->ssd_writes,
 			stat->hdd_reads, stat->hdd_writes,
 			stat->cache_hits, stat->cache_misses,
-			stat->cache_replacements);
+			stat->cache_replacements,
+			(double) stat->cache_hits /
+			(stat->cache_hits + stat->cache_misses) * 100);
 }
 
 /** FIXME: i don't like this style of inclusion */

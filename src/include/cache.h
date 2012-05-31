@@ -163,7 +163,10 @@ extern struct local_cache_ops arc_cache_ops;
 extern struct local_cache_ops lirs_cache_ops;
 extern struct local_cache_ops twoq_cache_ops;
 #if 0
+/* TODO */
 extern struct local_cache_ops lrfu_cache_ops;
+extern struct local_cache_ops mq_cache_ops;
+extern struct local_cache_ops lru2_cache_ops;
 #endif
 
 #endif	/** __CACHE_H__ */
