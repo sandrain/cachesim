@@ -23,7 +23,9 @@
 #include "cachesim.h"
 #include "cache_util.h"
 
+#if 0
 #define	_DEBUG_2Q
+#endif
 
 /** Kin, Kout params; according to the original paper, the reasonable
  * parameters are Kin = 0.3c and Kout = 0.5c where c denotes the cache
