@@ -28,7 +28,7 @@
 #endif
 
 /** This is applied and fixed!!
- *This implementation takes too much time to finish; every time we access
+ * This implementation takes too much time to finish; every time we access
  * block, we scan the file and search the next reference of a block. Instead of
  * this way, we can initially build a table for each block's reference then
  * continue the actuall processing. That method only need to scan the file once

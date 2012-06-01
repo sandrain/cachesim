@@ -36,6 +36,21 @@ enum {
 	N_CACHE_DEVS
 };
 
+#define	MAX_CACHE_DEVS		2
+
+struct cache_dev {
+	__u32 count;
+	struct storage *devs[MAX_CACHE_DEVS];
+};
+
+struct cache_source {
+	__u32 type;
+	union {
+		struct local_cache *local;
+		struct node *remote;
+	} next;
+};
+
 /**
  * local_cache structure represents the cache instance. Each algorithm should
  * implement its own local_cache_ops.
