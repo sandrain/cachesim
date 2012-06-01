@@ -107,7 +107,7 @@ struct local_cache *local_cache_init(struct local_cache *self, int policy,
 #endif
 
 struct local_cache *local_cache_init(struct local_cache *self, int policy,
-				struct node *local, struct cache_dev *dev,
+				struct node *local, struct storage *dev,
 				void *source, int stype)
 {
 	if (!self) {
@@ -126,14 +126,22 @@ struct local_cache *local_cache_init(struct local_cache *self, int policy,
 	switch (stype) {
 	case CACHE_SRC_LOCAL_DEV:
 		self->source.s.local_dev = source;
+		break;
 	case CACHE_SRC_LOCAL_CACHE:
 		self->source.s.local_cache = source;
+		break;
 	case CACHE_SRC_REMOTE:
 		self->source.s.remote = source;
+		break;
 	default:
 		errno = EINVAL;
 		return NULL;
 	}
+
+	self->ops = get_cache_ops(policy);
+	if (self->ops->init)
+		if (self->ops->init(self) != 0)
+			return NULL;
 
 	return self;
 }
@@ -170,17 +178,16 @@ int local_cache_sync_block(struct local_cache *self, struct io_request *req)
 
 	switch (type) {
 	case CACHE_SRC_LOCAL_DEV:
+		return storage_rw_block((struct storage *)
+					self->source.s.local_dev, req);
 	case CACHE_SRC_LOCAL_CACHE:
+		return local_cache_rw_block((struct local_cache *)
+					self->source.s.local_cache, req);
 	case CACHE_SRC_REMOTE:
-	default: break;
+		return node_rw_block((struct node *)
+					self->source.s.remote, req);
+	default: return -EINVAL;
 	}
-
-#if 0
-	if (self->pfs)	/** send request to the pfs */
-		return node_pfs_rw_block(self->pfs, req);
-	else		/** send request to local hdd */
-		return storage_rw_block(self->local->hdd, req);
-#endif
 }
 
 void local_cache_dump(struct local_cache *self, FILE *fp)

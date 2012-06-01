@@ -162,15 +162,15 @@ void node_set_pfs(struct node *self, struct node *pfs)
 int node_service_ioapp(struct node *self);
 
 /**
- * node_pfs_rw_block would be used when you need to request block io operation
- * to the pfs node.
+ * node_rw_block would be used when you need to request block io operation
+ * to a pfs node or an intermideate cache node.
  *
- * @pfs: pfs node instance.
+ * @node: node instance.
  * @req: block io request.
  *
  * returns number of hits in pfs cache, <0 on error.
  */
-int node_pfs_rw_block(struct node *pfs, struct io_request *req);
+int node_rw_block(struct node *node, struct io_request *req);
 
 /**
  * node_get_statistics fills @stat structure with current node statistics.

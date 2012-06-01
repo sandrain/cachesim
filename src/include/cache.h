@@ -93,7 +93,7 @@ struct local_cache {
  * returns initialized local_cache instance on success. NULL otherwise.
  */
 struct local_cache *local_cache_init(struct local_cache *self, int policy,
-				struct node *local, int dtype,
+				struct node *local, struct storage *dev,
 				void *source, int stype);
 
 /**

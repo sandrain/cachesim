@@ -68,7 +68,7 @@ int node_service_ioapp(struct node *self)
 	return 0;
 }
 
-int node_pfs_rw_block(struct node *self, struct io_request *req)
+int node_rw_block(struct node *self, struct io_request *req)
 {
 	int res = 0;
 	if (!self || !req)

@@ -338,8 +338,8 @@ static int cachesim_prepare(struct cachesim_config *config)
 
 		lcache = local_cache_init(&cache[i],
 					config->comnode_cache_policy,
-					node_data[i],
-					&__pfs_node);
+					node_data[i], node_data[i]->ram,
+					&__pfs_node, CACHE_SRC_REMOTE);
 		node_set_local_cache(node_data[i], lcache);
 	}
 
@@ -367,7 +367,8 @@ static int cachesim_prepare(struct cachesim_config *config)
 		return -errno;
 
 	lcache = local_cache_init(&cache[i], config->pfsnode_cache_policy,
-				pfs_node, NULL);
+				pfs_node, pfs_node->ram, pfs_node->hdd,
+				CACHE_SRC_LOCAL_DEV);
 	node_set_local_cache(pfs_node, lcache);
 
 	return 0;
