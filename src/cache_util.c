@@ -26,6 +26,7 @@ int cache_sync_block(struct local_cache *cache, __u64 block)
 {
 	struct io_request req;
 
+	req.node = cache->local->id;
 	req.type = IOREQ_TYPE_WRITE;
 	req.offset = block;
 	req.len = 1;
@@ -37,6 +38,7 @@ int cache_fetch_block(struct local_cache *cache, __u64 block)
 {
 	struct io_request req;
 
+	req.node = cache->local->id;
 	req.type = IOREQ_TYPE_READ;
 	req.offset = block;
 	req.len = 1;
@@ -48,6 +50,7 @@ int cache_rw_cache_dev(struct local_cache *cache, __u64 block, int type)
 {
 	struct io_request req;
 
+	req.node = cache->local->id;
 	req.type = type;
 	req.offset = block;
 	req.len = 1;

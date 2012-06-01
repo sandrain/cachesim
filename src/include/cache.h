@@ -58,11 +58,9 @@ struct cache_source {
  */
 struct local_cache {
 	__u32 node;			/* the node where this cache lives */
+	int policy;			/* cache policy */
 
 	struct node *local;		/* local node */
-#if 0
-	struct node *pfs;		/* pfs node */
-#endif
 	struct storage *cache_dev;	/* one of the devices in @local */
 	struct cache_source source;
 
@@ -70,7 +68,6 @@ struct local_cache {
 	__u64 stat_misses;
 	__u64 stat_replacements;
 
-	int policy;			/* cache policy */
 	void *private;			/* free hook for cache algorithms */
 	struct local_cache_ops *ops;	/* algorithm-specific cache operation
 					   table */

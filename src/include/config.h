@@ -20,6 +20,7 @@
 #define	__CONFIG_H__
 
 #include <stdio.h>
+#include <assert.h>
 #include <pthread.h>
 #include <linux/types.h>
 
@@ -77,20 +78,26 @@ extern struct cachesim_config *cachesim_config;
 static inline __u64 get_network_cost(__u32 n1, __u32 n2)
 {
 	__u64 *grid = cachesim_config->network_cost;
-	return grid[n1 * cachesim_config->nodes + n2];
+	__u32 size = cachesim_config->nodes + 1;
+
+	assert(n1 < size || n2 < size);
+	return grid[n1 * size + n2];
 }
 
 /**
- * set_network_cost records that there has been an access from node @n1 to node
- * @n2 through the network. You can think that this is a counter.
+ * set_network_cost records that there has been an access from node @from to
+ * node @to through the network. You can think that this is a counter.
  *
- * @n1: node id
- * @n2: node id
+ * @from: node id
+ * @to: node id
  */
-static inline void set_network_access(__u32 n1, __u32 n2)
+static inline void set_network_access(__u32 from, __u32 to)
 {
 	__u64 *grid = cachesim_config->network_access;
-	grid[n1 * cachesim_config->nodes + n2]++;
+	__u32 size = cachesim_config->nodes + 1;
+
+	assert(from < size || to < size);
+	grid[from * size + to]++;
 }
 
 /**
