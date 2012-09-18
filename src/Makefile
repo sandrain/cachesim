@@ -3,7 +3,8 @@
 #
 
 CC	= gcc
-CFLAGS	= -ggdb -O0 -Wall -Iinclude
+#CFLAGS	= -ggdb -O0 -Wall -Iinclude
+CFLAGS	= -O2 -Wall -Iinclude
 #LDFLAGS	= -lpthread
 LDFLAGS	= -pthread
 

@@ -81,6 +81,10 @@ int node_rw_block(struct node *self, struct io_request *req)
 	res = local_cache_rw_block(self->cache, req);
 	pfs_unlock();
 
+#if 1
+	fprintf(stderr, "%llu\t%llu\n", req->offset, req->len);
+#endif
+
 	if (self->id != req->node)
 		set_network_access(self->id, req->node);
 
