@@ -80,6 +80,29 @@ static int opt_compare(const struct cache_meta *e1,
 
 static inline __u64 get_unique_block_count(void)
 {
+#if 0	/** TODO!!! */
+	FILE *fp = fopen(cachesim_config->trace_file, "r");
+	char buf[64];
+	__u64 count;
+
+	while  (fgets(buf, 63, fp) != NULL) {
+		__u64 i;
+		__u64 offset;
+		__u64 len;
+		__u64 seq;
+		char type;
+
+		if (isspace(buf[0]) || buf[0] == '#')
+			continue;
+
+		sscanf(buf, "%llu %llu %c %llu", &offset, &len, &type, &seq);
+	}
+	if (ferror(fp)) {
+	}
+
+	fclose(fp);
+#endif
+
 	return node_get_unique_block_count(NULL);
 #if 0
 	FILE *fp;
