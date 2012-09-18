@@ -82,7 +82,7 @@ int node_rw_block(struct node *self, struct io_request *req)
 	pfs_unlock();
 
 #if 1
-	fprintf(stderr, "%llu\t%llu\n", req->offset, req->len);
+	fprintf(stderr, "%llu\t%llu\t%d\n", req->offset, req->len, req->type);
 #endif
 
 	if (self->id != req->node)
