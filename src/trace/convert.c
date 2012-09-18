@@ -27,8 +27,8 @@ int main(int argc, char **argv)
 
 		sscanf(buf, "%c %lu %lu", &type, &offset, &len);
 
-		printf("%lu %lu %d 0\n",
-			offset, len, type == 'R' ? 0 : 1);
+		printf("%lu %lu %c 0\n",
+			offset, len, type);
 	}
 	if (ferror(fp))
 		perror("fgets");
