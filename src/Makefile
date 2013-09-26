@@ -4,7 +4,7 @@
 
 CC	= gcc
 #CFLAGS	= -ggdb -O0 -Wall -Iinclude
-CFLAGS	= -O2 -Wall -Iinclude
+CFLAGS	= -O2 -Wall -Iinclude -D_DEBUG_OPT
 #LDFLAGS	= -lpthread
 LDFLAGS	= -pthread
 

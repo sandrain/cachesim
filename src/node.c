@@ -81,7 +81,7 @@ int node_rw_block(struct node *self, struct io_request *req)
 	res = local_cache_rw_block(self->cache, req);
 	pfs_unlock();
 
-#if 1
+#if 0
 	fprintf(stderr, "%llu\t%llu\t%d\n", req->offset, req->len, req->type);
 #endif
 

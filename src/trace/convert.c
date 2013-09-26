@@ -8,6 +8,7 @@ static char buf[64];
 int main(int argc, char **argv)
 {
 	FILE *fp;
+	double time = 0.05;
 	//unsigned long sequence = 0;
 
 	if (argc != 2) {
@@ -18,6 +19,12 @@ int main(int argc, char **argv)
 	fp = fopen(argv[1], "r");
 
 	while (fgets(buf, 64-1, fp) != NULL) {
+		uint64_t offset, count, tmp1, tmp2;
+
+		sscanf(buf, "%lu %lu %lu %lu", &offset, &count, &tmp1, &tmp2);
+		printf("0,%lu,%lu,r,%.2f\n", offset, count*512, time);
+		time += 0.05;
+#if 0
 		uint64_t offset;
 		uint64_t len;
 		char type;
@@ -29,6 +36,7 @@ int main(int argc, char **argv)
 
 		printf("%lu %lu %c 0\n",
 			offset, len, type);
+#endif
 	}
 	if (ferror(fp))
 		perror("fgets");
