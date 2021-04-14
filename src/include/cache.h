@@ -36,21 +36,38 @@ enum {
 	N_CACHE_DEVS
 };
 
+enum {
+	CACHE_SRC_LOCAL_DEV = 0,
+	CACHE_SRC_LOCAL_CACHE,
+	CACHE_SRC_REMOTE
+};
+
+struct cache_source {
+	__u32 type;
+
+	union {
+		struct storage *local_dev;
+		struct local_cache *local_cache;
+		struct node *remote;
+	} s;
+};
+
 /**
  * local_cache structure represents the cache instance. Each algorithm should
  * implement its own local_cache_ops.
  */
 struct local_cache {
 	__u32 node;			/* the node where this cache lives */
+	int policy;			/* cache policy */
 
 	struct node *local;		/* local node */
-	struct node *pfs;		/* pfs node */
+	struct storage *cache_dev;	/* one of the devices in @local */
+	struct cache_source source;
 
 	__u64 stat_hits;		/* statistics information */
 	__u64 stat_misses;
 	__u64 stat_replacements;
 
-	int policy;			/* cache policy */
 	void *private;			/* free hook for cache algorithms */
 	struct local_cache_ops *ops;	/* algorithm-specific cache operation
 					   table */
@@ -64,12 +81,17 @@ struct local_cache {
  * @self: the memory space allocated by the caller.
  * @policy: cache policy to be used.
  * @local: node instance where this cache lives.
- * @pfs: pfs node instance.
+ * @dtype: which device in @local should be used for cache?
+ *         CACHE_DEV_RAM | CACHE_DEV_SSD | CACHE_DEV_HDD
+ * @source: source storage for cache.
+ * @stype: the type of the @source
+ *         CACHE_SRC_LOCAL_DEV | CACHE_SRC_LOCAL_CACHE | CACHE_SRC_REMOTE
  *
  * returns initialized local_cache instance on success. NULL otherwise.
  */
 struct local_cache *local_cache_init(struct local_cache *self, int policy,
-				struct node *local, struct node *pfs);
+				struct node *local, struct storage *dev,
+				void *source, int stype);
 
 /**
  * local_cache_exit destoys the given local_cache instance. This doesn't mean
@@ -168,6 +190,7 @@ extern struct local_cache_ops lrfu_cache_ops;
 extern struct local_cache_ops mq_cache_ops;
 extern struct local_cache_ops lru2_cache_ops;
 #endif
+
 
 #endif	/** __CACHE_H__ */
 

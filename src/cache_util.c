@@ -26,6 +26,7 @@ int cache_sync_block(struct local_cache *cache, __u64 block)
 {
 	struct io_request req;
 
+	req.node = cache->local->id;
 	req.type = IOREQ_TYPE_WRITE;
 	req.offset = block;
 	req.len = 1;
@@ -37,6 +38,7 @@ int cache_fetch_block(struct local_cache *cache, __u64 block)
 {
 	struct io_request req;
 
+	req.node = cache->local->id;
 	req.type = IOREQ_TYPE_READ;
 	req.offset = block;
 	req.len = 1;
@@ -48,6 +50,7 @@ int cache_rw_cache_dev(struct local_cache *cache, __u64 block, int type)
 {
 	struct io_request req;
 
+	req.node = cache->local->id;
 	req.type = type;
 	req.offset = block;
 	req.len = 1;
@@ -60,13 +63,15 @@ __u64 node_get_unique_block_count(struct node *node)
 {
 	FILE *fp;
 	char buf[128];
-	__u64 count;
+	char *tmp;
+	__u64 count = 0;
 
 	sprintf(buf, "cat %s|grep -v '^#'|cut -f1 -d' '|sort -u|wc -l",
 			cachesim_config->trace_file);
 	fp = popen(buf, "r");
-	fgets(buf, 127, fp);
-	count = atoll(buf);
+	tmp = fgets(buf, 127, fp);
+	if (tmp)
+		count = atoll(buf);
 	fclose(fp);
 
 	return count;
@@ -77,13 +82,15 @@ __u64 node_get_request_count(struct node *node)
 {
 	FILE *fp;
 	char buf[128];
-	__u64 count;
+	char *tmp;
+	__u64 count = 0;
 
 	sprintf(buf, "cat %s|grep -v '^#'|cut -f1 -d' '|wc -l",
 			cachesim_config->trace_file);
 	fp = popen(buf, "r");
-	fgets(buf, 127, fp);
-	count = atoll(buf);
+	tmp = fgets(buf, 127, fp);
+	if (tmp)
+		count = atoll(buf);
 	fclose(fp);
 
 	return count;

@@ -241,7 +241,8 @@ static struct cachesim_config *read_configuration(char *config_file)
 	if (!config->trace_file)
 		config->trace_file = DEFAULT_TRACE_FILE;
 
-	netgrid = malloc(sizeof(__u64) * config->nodes * config->nodes * 2);
+	lcount = (config->nodes + 1) * (config->nodes + 1);
+	netgrid = malloc(sizeof(__u64) * lcount * 2);
 	if (!netgrid) {
 		perror("Failed to allocate memory");
 		config = NULL;
@@ -249,16 +250,16 @@ static struct cachesim_config *read_configuration(char *config_file)
 	}
 
 	config->network_cost = netgrid;
-	config->network_access = &netgrid[config->nodes * config->nodes];
+	config->network_access = &netgrid[lcount];
 
-	for (i = 0; i < config->nodes * config->nodes; i++) {
+	for (i = 0; i < lcount; i++) {
 		config->network_cost[i] = _netcost_local;
 		config->network_access[i] = 0;
 	}
 
-	for (i = 0; i < config->nodes; i++)
+	for (i = 0; i < lcount; i++)
 		config->network_cost[i] = _netcost_pfs;
-	for (i = 0; i < config->nodes * config->nodes; i += config->nodes)
+	for (i = 0; i < lcount; i += config->nodes)
 		config->network_cost[i] = _netcost_pfs;
 
 out:
@@ -338,8 +339,8 @@ static int cachesim_prepare(struct cachesim_config *config)
 
 		lcache = local_cache_init(&cache[i],
 					config->comnode_cache_policy,
-					node_data[i],
-					&__pfs_node);
+					node_data[i], node_data[i]->ram,
+					&__pfs_node, CACHE_SRC_REMOTE);
 		node_set_local_cache(node_data[i], lcache);
 	}
 
@@ -367,7 +368,8 @@ static int cachesim_prepare(struct cachesim_config *config)
 		return -errno;
 
 	lcache = local_cache_init(&cache[i], config->pfsnode_cache_policy,
-				pfs_node, NULL);
+				pfs_node, pfs_node->ram, pfs_node->hdd,
+				CACHE_SRC_LOCAL_DEV);
 	node_set_local_cache(pfs_node, lcache);
 
 	return 0;

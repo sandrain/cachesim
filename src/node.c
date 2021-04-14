@@ -68,19 +68,25 @@ int node_service_ioapp(struct node *self)
 	return 0;
 }
 
-int node_pfs_rw_block(struct node *self, struct io_request *req)
+int node_rw_block(struct node *self, struct io_request *req)
 {
 	int res = 0;
 	if (!self || !req)
 		return -EINVAL;
 
-	/** FIXME: is this correct here?? we have to consider this carefully
-	 * when we implement the network cost. */
-	req->node = 0;
+	if (self->id != req->node)
+		set_network_access(req->node, self->id);
 
 	pfs_lock();
 	res = local_cache_rw_block(self->cache, req);
 	pfs_unlock();
+
+#if 0
+	fprintf(stderr, "%llu\t%llu\t%d\n", req->offset, req->len, req->type);
+#endif
+
+	if (self->id != req->node)
+		set_network_access(self->id, req->node);
 
 	return res;
 }

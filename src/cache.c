@@ -22,15 +22,29 @@
 
 #include "cachesim.h"
 
+static struct local_cache_ops *cache_ops[] = {
+	&none_cache_ops,
+	&random_cache_ops,
+	&opt_cache_ops,
+	&fifo_cache_ops,
+	&lru_cache_ops,
+	&mru_cache_ops,
+	&lfu_cache_ops,
+	&arc_cache_ops,
+	&lirs_cache_ops,
+	&twoq_cache_ops
+};
+
+static inline struct local_cache_ops *get_cache_ops(int policy)
+{
+	return cache_ops[policy];
+}
+
 struct local_cache *local_cache_init(struct local_cache *self, int policy,
-				struct node *local, struct node *pfs)
+				struct node *local, struct storage *dev,
+				void *source, int stype)
 {
 	if (!self) {
-		errno = EINVAL;
-		return NULL;
-	}
-
-	if (policy < 0 || policy >= N_CACHE_POLICIES) {
 		errno = EINVAL;
 		return NULL;
 	}
@@ -40,45 +54,25 @@ struct local_cache *local_cache_init(struct local_cache *self, int policy,
 	self->node = local->id;
 	self->policy = policy;
 	self->local = local;
-	self->pfs = pfs;
+	self->cache_dev = dev;
+	self->source.type = stype;
 
-	/**
-	 * FIXME: isn't there any other way which doesn't require to modify
-	 * this code when adding a new cache algorithm??
-	 */
-	switch (policy) {
-	case CACHE_POLICY_RANDOM:
-		self->ops = &random_cache_ops;
+	switch (stype) {
+	case CACHE_SRC_LOCAL_DEV:
+		self->source.s.local_dev = source;
 		break;
-	case CACHE_POLICY_OPT:
-		self->ops = &opt_cache_ops;
+	case CACHE_SRC_LOCAL_CACHE:
+		self->source.s.local_cache = source;
 		break;
-	case CACHE_POLICY_FIFO:
-		self->ops = &fifo_cache_ops;
-		break;
-	case CACHE_POLICY_LRU:
-		self->ops = &lru_cache_ops;
-		break;
-	case CACHE_POLICY_MRU:
-		self->ops = &mru_cache_ops;
-		break;
-	case CACHE_POLICY_LFU:
-		self->ops = &lfu_cache_ops;
-		break;
-	case CACHE_POLICY_ARC:
-		self->ops = &arc_cache_ops;
-		break;
-	case CACHE_POLICY_LIRS:
-		self->ops = &lirs_cache_ops;
-		break;
-	case CACHE_POLICY_2Q:
-		self->ops = &twoq_cache_ops;
+	case CACHE_SRC_REMOTE:
+		self->source.s.remote = source;
 		break;
 	default:
-		self->ops = &none_cache_ops;
-		break;
+		errno = EINVAL;
+		return NULL;
 	}
 
+	self->ops = get_cache_ops(policy);
 	if (self->ops->init)
 		if (self->ops->init(self) != 0)
 			return NULL;
@@ -114,10 +108,20 @@ int local_cache_rw_block(struct local_cache *self, struct io_request *req)
 
 int local_cache_sync_block(struct local_cache *self, struct io_request *req)
 {
-	if (self->pfs)	/** send request to the pfs */
-		return node_pfs_rw_block(self->pfs, req);
-	else		/** send request to local hdd */
-		return storage_rw_block(self->local->hdd, req);
+	int type = self->source.type;
+
+	switch (type) {
+	case CACHE_SRC_LOCAL_DEV:
+		return storage_rw_block((struct storage *)
+					self->source.s.local_dev, req);
+	case CACHE_SRC_LOCAL_CACHE:
+		return local_cache_rw_block((struct local_cache *)
+					self->source.s.local_cache, req);
+	case CACHE_SRC_REMOTE:
+		return node_rw_block((struct node *)
+					self->source.s.remote, req);
+	default: return -EINVAL;
+	}
 }
 
 void local_cache_dump(struct local_cache *self, FILE *fp)

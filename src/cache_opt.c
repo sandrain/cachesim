@@ -28,7 +28,7 @@
 #endif
 
 /** This is applied and fixed!!
- *This implementation takes too much time to finish; every time we access
+ * This implementation takes too much time to finish; every time we access
  * block, we scan the file and search the next reference of a block. Instead of
  * this way, we can initially build a table for each block's reference then
  * continue the actuall processing. That method only need to scan the file once
@@ -80,6 +80,29 @@ static int opt_compare(const struct cache_meta *e1,
 
 static inline __u64 get_unique_block_count(void)
 {
+#if 0	/** TODO!!! */
+	FILE *fp = fopen(cachesim_config->trace_file, "r");
+	char buf[64];
+	__u64 count;
+
+	while  (fgets(buf, 63, fp) != NULL) {
+		__u64 i;
+		__u64 offset;
+		__u64 len;
+		__u64 seq;
+		char type;
+
+		if (isspace(buf[0]) || buf[0] == '#')
+			continue;
+
+		sscanf(buf, "%llu %llu %c %llu", &offset, &len, &type, &seq);
+	}
+	if (ferror(fp)) {
+	}
+
+	fclose(fp);
+#endif
+
 	return node_get_unique_block_count(NULL);
 #if 0
 	FILE *fp;
